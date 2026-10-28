@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 from datetime import datetime, date, time, timedelta
 
-from .models import RegisteredUser, AttendanceRecord, GeofenceSetting
+from .models import RegisteredUser, AttendanceRecord, GeofenceSetting, SystemSetting
 from attendance_system import check_location_allowed
 
 @csrf_exempt
@@ -927,3 +927,139 @@ def mobile_admin_students_import(request: HttpRequest) -> JsonResponse:
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+def mobile_settings_get(request: HttpRequest) -> JsonResponse:
+    """Fetch user settings, notification preferences, sound list, and admin reminder configs."""
+    try:
+        user_name = request.GET.get('name') or ''
+        user = None
+        if user_name:
+            user = RegisteredUser.objects.filter(Q(name__iexact=user_name) | Q(email__iexact=user_name), is_deleted=False).first()
+        if not user:
+            user = RegisteredUser.objects.filter(is_deleted=False).first()
+            
+        email = user.email if (user and user.email) else "amartyakalita2004@gmail.com"
+        
+        system_setting = SystemSetting.objects.first()
+        if not system_setting:
+            system_setting = SystemSetting.objects.create(
+                reminder_time="08:30",
+                reminder_interval="Daily Reminders",
+                enable_reminder_sound=True
+            )
+            
+        # Load sounds from the database (ReminderSound model)
+        from .models import ReminderSound
+        import re
+        def _natural_key(name: str):
+            m = re.search(r"(\d+)", name)
+            return int(m.group(1)) if m else 0
+
+        sound_labels = {
+            "Sound 1.wav": "Sound 1 (Standard Chime)",
+            "Sound 2.wav": "Sound 2 (Soft Bell)",
+            "Sound 3.wav": "Sound 3 (Gentle Chime)",
+            "Sound 4.wav": "Sound 4 (Digital Pulse)",
+            "Sound 5.wav": "Sound 5 (Marimba Tone)",
+            "Sound 6.wav": "Sound 6 (Clear Ping)",
+            "Sound 7.wav": "Sound 7 (Echo Ding)",
+            "Sound 8.wav": "Sound 8 (Harp Melody)",
+            "Sound 9.wav": "Sound 9 (Classic Bell)",
+            "Sound 10.wav": "Sound 10 (Modern Alert)",
+        }
+
+        db_sounds = list(ReminderSound.objects.all())
+        sound_list = []
+        if db_sounds:
+            db_sounds.sort(key=lambda s: _natural_key(s.name))
+            for s in db_sounds:
+                file_name = s.name
+                label = sound_labels.get(file_name, file_name.replace(".wav", "").replace(".mp3", ""))
+                url = s.file.url if s.file else f"/media/{file_name}"
+                sound_list.append({
+                    "id": s.id,
+                    "file": file_name,
+                    "label": label,
+                    "url": url
+                })
+        else:
+            # Fallback to scanning sounds in notification sounds directory
+            sound_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "notification sounds")
+            if os.path.isdir(sound_dir):
+                raw_files = [f for f in os.listdir(sound_dir) if f.lower().endswith((".wav", ".mp3", ".ogg"))]
+                raw_files.sort(key=_natural_key)
+                for sf in raw_files:
+                    label = sound_labels.get(sf, sf.replace(".wav", "").replace(".mp3", ""))
+                    sound_list.append({
+                        "file": sf,
+                        "label": label,
+                        "url": f"/static/{sf}"
+                    })
+
+        if not sound_list:
+            sound_list = [
+                {"file": "Sound 1.wav", "label": "Sound 1 (Standard Chime)", "url": "/media/Sound%201.wav"},
+                {"file": "Sound 2.wav", "label": "Sound 2 (Soft Bell)", "url": "/media/Sound%202.wav"},
+                {"file": "Sound 3.wav", "label": "Sound 3 (Gentle Chime)", "url": "/media/Sound%203.wav"},
+            ]
+            
+        reminder_time_str = system_setting.reminder_time.strftime("%H:%M") if system_setting.reminder_time else "08:30"
+        try:
+            r_dt = datetime.strptime(reminder_time_str, "%H:%M")
+            reminder_time_display = r_dt.strftime("%I:%M %p")
+        except Exception:
+            reminder_time_display = reminder_time_str
+
+        return JsonResponse({
+            "success": True,
+            "attendance_alert": system_setting.enable_reminder_sound,
+            "reminder_time": reminder_time_str,
+            "reminder_time_display": reminder_time_display,
+            "reminder_interval": system_setting.reminder_interval or "Daily Reminders",
+            "selected_sound": "Sound 1 (Standard Chime)",
+            "sounds": sound_list,
+            "email": email,
+            "theme": "system",
+            "full_name": user.name if user else "Amartya",
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+def mobile_settings_update(request: HttpRequest) -> JsonResponse:
+    """Save user notification preferences, sound selection, and appearance."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+        
+        # Update system-wide reminder / sound preference if provided
+        if "attendance_alert" in data:
+            setting = SystemSetting.objects.first()
+            if setting:
+                setting.enable_reminder_sound = bool(data["attendance_alert"])
+                setting.save()
+                
+        # Update user's email if provided
+        if "email" in data and data["email"].strip():
+            user_name = data.get("name") or ""
+            user = None
+            if user_name:
+                user = RegisteredUser.objects.filter(Q(name__iexact=user_name) | Q(email__iexact=user_name), is_deleted=False).first()
+            if not user:
+                user = RegisteredUser.objects.filter(is_deleted=False).first()
+            if user:
+                user.email = data["email"].strip()
+                user.save()
+                
+        return JsonResponse({
+            "success": True,
+            "message": "Preferences saved successfully",
+            "updated": data
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+

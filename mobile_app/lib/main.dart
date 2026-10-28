@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io' show Platform, SocketException;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -39,6 +41,7 @@ class ApiConfig {
     } catch (_) {}
     return 'http://$host:8000';
   }
+
   static String get loginUrl => '$baseUrl/api/mobile/login/';
   static String get registerUrl => '$baseUrl/api/mobile/register/';
   static String get signInScanUrl => '$baseUrl/signin/scan/';
@@ -48,12 +51,20 @@ class ApiConfig {
   static String get mobileCheckoutUrl => '$baseUrl/api/mobile/checkout/';
   static String get profileUrl => '$baseUrl/api/mobile/profile/';
   static String get adminDashboardUrl => '$baseUrl/api/mobile/admin/dashboard/';
-  static String get adminGeofenceGetUrl => '$baseUrl/api/mobile/admin/geofence/';
-  static String get adminGeofenceUpdateUrl => '$baseUrl/api/mobile/admin/geofence/update/';
+  static String get adminGeofenceGetUrl =>
+      '$baseUrl/api/mobile/admin/geofence/';
+  static String get adminGeofenceUpdateUrl =>
+      '$baseUrl/api/mobile/admin/geofence/update/';
   static String get adminStudentsUrl => '$baseUrl/api/mobile/admin/students/';
-  static String get adminStudentsImportUrl => '$baseUrl/api/mobile/admin/students/import/';
-  static String adminStudentDeleteUrl(int id) => '$baseUrl/api/mobile/admin/students/$id/delete/';
-  static String adminStudentUpdateUrl(int id) => '$baseUrl/api/mobile/admin/students/$id/update/';
+  static String get adminStudentsImportUrl =>
+      '$baseUrl/api/mobile/admin/students/import/';
+  static String adminStudentDeleteUrl(int id) =>
+      '$baseUrl/api/mobile/admin/students/$id/delete/';
+  static String adminStudentUpdateUrl(int id) =>
+      '$baseUrl/api/mobile/admin/students/$id/update/';
+  static String get mobileSettingsUrl => '$baseUrl/api/mobile/settings/';
+  static String get mobileSettingsUpdateUrl =>
+      '$baseUrl/api/mobile/settings/update/';
   static String dashboardUrl(String name, [int? year, int? month]) {
     String query = 'name=${Uri.encodeComponent(name)}';
     if (year != null && month != null) {
@@ -63,7 +74,9 @@ class ApiConfig {
   }
 
   static String analyticsUrl(String name, [String? monthKey]) {
-    final queryParam = monthKey != null && monthKey.isNotEmpty ? '&month=$monthKey' : '';
+    final queryParam = monthKey != null && monthKey.isNotEmpty
+        ? '&month=$monthKey'
+        : '';
     return '$baseUrl/api/mobile/analytics/?name=${Uri.encodeComponent(name)}$queryParam';
   }
 }
@@ -127,7 +140,9 @@ class AttendanceMobileApp extends StatelessWidget {
       title: 'Attendance System',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF1F5F9), // bg-gray-light equivalent
+        scaffoldBackgroundColor: const Color(
+          0xFFF1F5F9,
+        ), // bg-gray-light equivalent
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
@@ -142,7 +157,9 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Very light gray/white matching the image
+      backgroundColor: const Color(
+        0xFFF8F9FA,
+      ), // Very light gray/white matching the image
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -195,7 +212,10 @@ class WelcomeScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xFF00E5FF), // Cyan
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFF8F9FA), width: 3),
+                          border: Border.all(
+                            color: const Color(0xFFF8F9FA),
+                            width: 3,
+                          ),
                         ),
                         child: const Icon(
                           Icons.verified_user_rounded,
@@ -208,7 +228,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              
+
               // Hero Title
               const Text(
                 'Attendance Pro',
@@ -217,11 +237,11 @@ class WelcomeScreen extends StatelessWidget {
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                   color: Color(0xFF0F172A),
-                  fontFamily: 'Roboto', 
+                  fontFamily: 'Roboto',
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Hero Description
               const Text(
                 'Effortless check-ins with secure\nface recognition technology.',
@@ -234,7 +254,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              
+
               // Sign In Button
               SizedBox(
                 width: double.infinity,
@@ -250,31 +270,31 @@ class WelcomeScreen extends StatelessWidget {
                   icon: const Icon(Icons.login_rounded, size: 20),
                   label: const Text(
                     'Sign In',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF), // Cyan
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9999),
-                    ),
-                  ).copyWith(
-                    shadowColor: WidgetStateProperty.all(const Color(0xFF00E5FF).withValues(alpha: 0.4)),
-                    elevation: WidgetStateProperty.resolveWith<double>(
-                      (Set<WidgetState> states) {
-                        if (states.contains(WidgetState.pressed)) return 4;
-                        return 8; 
-                      },
-                    ),
-                  ),
+                  style:
+                      ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00E5FF), // Cyan
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                      ).copyWith(
+                        shadowColor: WidgetStateProperty.all(
+                          const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                        ),
+                        elevation: WidgetStateProperty.resolveWith<double>((
+                          Set<WidgetState> states,
+                        ) {
+                          if (states.contains(WidgetState.pressed)) return 4;
+                          return 8;
+                        }),
+                      ),
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Register Face Button
               SizedBox(
                 width: double.infinity,
@@ -290,10 +310,7 @@ class WelcomeScreen extends StatelessWidget {
                   icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
                   label: const Text(
                     'Register Face',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                   style: ElevatedButton.styleFrom(
                     foregroundColor: const Color(0xFF0F172A), // Dark text
@@ -306,7 +323,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Forgot password link
               TextButton(
                 onPressed: () {},
@@ -320,12 +337,16 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Security Note
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline_rounded, color: Color(0xFF64748B), size: 16),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFF64748B),
+                    size: 16,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Securely encrypted biometric data',
@@ -392,7 +413,7 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
         });
         return;
       }
-      
+
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -425,8 +446,12 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
   }
 
   Future<void> _scanNow() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-    if (_isLoading) return;
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+    if (_isLoading) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -442,9 +467,7 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
           .post(
             Uri.parse(ApiConfig.signInScanUrl),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'image': base64Image,
-            }),
+            body: jsonEncode({'image': base64Image}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -469,11 +492,13 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
       }
     } on TimeoutException {
       setState(() {
-        _errorMessage = 'Connection timed out. Please ensure backend server is running.';
+        _errorMessage =
+            'Connection timed out. Please ensure backend server is running.';
       });
     } on SocketException {
       setState(() {
-        _errorMessage = 'Network error connecting to ${ApiConfig.baseUrl}. Make sure your server is running.';
+        _errorMessage =
+            'Network error connecting to ${ApiConfig.baseUrl}. Make sure your server is running.';
       });
     } catch (e) {
       setState(() {
@@ -501,7 +526,11 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
           child: Container(
             color: Colors.transparent,
             padding: const EdgeInsets.all(16.0),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF0F172A),
+              size: 20,
+            ),
           ),
         ),
         title: const Text(
@@ -514,10 +543,7 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color(0xFFE2E8F0),
-            height: 1.0,
-          ),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
         ),
       ),
       body: SingleChildScrollView(
@@ -547,30 +573,42 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               Container(
                 width: 240,
                 height: 240,
                 clipBehavior: Clip.hardEdge,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black, // Dark background to verify if camera is rendering
-                  border: Border.all(
-                    color: const Color(0xFFEBF8FF),
-                    width: 12,
-                  ),
+                  color: Colors
+                      .black, // Dark background to verify if camera is rendering
+                  border: Border.all(color: const Color(0xFFEBF8FF), width: 12),
                 ),
                 child: _hasPermission && _cameraController != null
                     ? (_cameraController!.value.isInitialized
-                        ? FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: _cameraController!.value.previewSize?.height ?? 480,
-                              height: _cameraController!.value.previewSize?.width ?? 640,
-                              child: CameraPreview(_cameraController!),
-                            ),
-                          )
-                        : const Center(child: CircularProgressIndicator(color: Colors.white)))
+                          ? FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width:
+                                    _cameraController!
+                                        .value
+                                        .previewSize
+                                        ?.height ??
+                                    480,
+                                height:
+                                    _cameraController!
+                                        .value
+                                        .previewSize
+                                        ?.width ??
+                                    640,
+                                child: CameraPreview(_cameraController!),
+                              ),
+                            )
+                          : const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ))
                     : const SizedBox.shrink(),
               ),
               const SizedBox(height: 32),
@@ -580,7 +618,10 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                 GestureDetector(
                   onTap: _requestPermission,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEFF6FF), // very light blue
                       borderRadius: BorderRadius.circular(30),
@@ -604,7 +645,10 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
               if (_errorMessage.isNotEmpty) ...[
                 Text(
                   _errorMessage,
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -616,12 +660,20 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _hasPermission && !_isLoading ? _scanNow : null,
-                  icon: _isLoading 
-                    ? const SizedBox(
-                        width: 20, height: 20, 
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                    : const Icon(Icons.center_focus_strong_rounded, size: 20, color: Colors.white),
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.center_focus_strong_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
                   label: Text(
                     _isLoading ? 'Scanning...' : 'Scan Now',
                     style: const TextStyle(
@@ -663,7 +715,10 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 18,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -671,7 +726,11 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.login_rounded, color: Color(0xFF64748B), size: 22),
+                      const Icon(
+                        Icons.login_rounded,
+                        color: Color(0xFF64748B),
+                        size: 22,
+                      ),
                       const SizedBox(width: 12),
                       const Text(
                         'Manual Login',
@@ -682,7 +741,11 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
                         ),
                       ),
                       const Spacer(),
-                      const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 22),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF94A3B8),
+                        size: 22,
+                      ),
                     ],
                   ),
                 ),
@@ -718,7 +781,11 @@ class _SignInScannerScreenState extends State<SignInScannerScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.verified_user_rounded, color: Color(0xFF10B981), size: 16),
+                  const Icon(
+                    Icons.verified_user_rounded,
+                    color: Color(0xFF10B981),
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   const Text(
                     'Enterprise-grade biometric security active',
@@ -773,10 +840,7 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
           .post(
             Uri.parse(ApiConfig.loginUrl),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'username': email,
-              'password': password,
-            }),
+            body: jsonEncode({'username': email, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -796,16 +860,21 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
         );
       } else {
         setState(() {
-          _errorMessage = data['error'] ?? data['message'] ?? 'Login failed. Please check your credentials.';
+          _errorMessage =
+              data['error'] ??
+              data['message'] ??
+              'Login failed. Please check your credentials.';
         });
       }
     } on TimeoutException {
       setState(() {
-        _errorMessage = 'Connection timed out. Make sure the backend server is running on port 8000.';
+        _errorMessage =
+            'Connection timed out. Make sure the backend server is running on port 8000.';
       });
     } on SocketException {
       setState(() {
-        _errorMessage = 'Could not connect to ${ApiConfig.baseUrl}. Make sure your Django server is running.';
+        _errorMessage =
+            'Could not connect to ${ApiConfig.baseUrl}. Make sure your Django server is running.';
       });
     } catch (e) {
       setState(() {
@@ -837,7 +906,11 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
           child: Container(
             color: Colors.transparent,
             padding: const EdgeInsets.all(16.0),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF0F172A),
+              size: 20,
+            ),
           ),
         ),
         title: const Text(
@@ -850,10 +923,7 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color(0xFFE2E8F0),
-            height: 1.0,
-          ),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
         ),
       ),
       body: SafeArea(
@@ -862,7 +932,10 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
             // Main Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 40,
+                ),
                 child: Column(
                   children: [
                     // Cyan Icon Box
@@ -874,7 +947,9 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00F0FF).withValues(alpha: 0.4),
+                            color: const Color(
+                              0xFF00F0FF,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 25,
                             offset: const Offset(0, 10),
                           ),
@@ -887,14 +962,11 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Subtitle
                     const Text(
                       'Enter your credentials to continue',
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
                     ),
                     const SizedBox(height: 24),
 
@@ -946,12 +1018,24 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
                               hintText: 'name@company.com',
-                              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-                              prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFF94A3B8), size: 20),
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 15,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.email_rounded,
+                                color: Color(0xFF94A3B8),
+                                size: 20,
+                              ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 18,
+                              ),
                             ),
-                            style: const TextStyle(color: Color(0xFF334155), fontSize: 15),
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
@@ -992,11 +1076,20 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               hintText: '••••••••',
-                              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-                              prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xFF94A3B8), size: 20),
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 15,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.lock_rounded,
+                                color: Color(0xFF94A3B8),
+                                size: 20,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                                  _obscurePassword
+                                      ? Icons.visibility_rounded
+                                      : Icons.visibility_off_rounded,
                                   color: const Color(0xFF94A3B8),
                                   size: 20,
                                 ),
@@ -1007,9 +1100,14 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                                 },
                               ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 18,
+                              ),
                             ),
-                            style: const TextStyle(color: Color(0xFF334155), fontSize: 15),
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
@@ -1044,22 +1142,26 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00F0FF),
-                          foregroundColor: const Color(0xFF0F172A),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                        ).copyWith(
-                          shadowColor: WidgetStateProperty.all(const Color(0xFF00F0FF).withValues(alpha: 0.4)),
-                          elevation: WidgetStateProperty.resolveWith<double>(
-                            (Set<WidgetState> states) {
-                              if (states.contains(WidgetState.pressed)) return 4;
-                              return 8; // Default elevation (simulates box-shadow)
-                            },
-                          ),
-                        ),
+                        style:
+                            ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00F0FF),
+                              foregroundColor: const Color(0xFF0F172A),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9999),
+                              ),
+                            ).copyWith(
+                              shadowColor: WidgetStateProperty.all(
+                                const Color(0xFF00F0FF).withValues(alpha: 0.4),
+                              ),
+                              elevation: WidgetStateProperty.resolveWith<double>((
+                                Set<WidgetState> states,
+                              ) {
+                                if (states.contains(WidgetState.pressed))
+                                  return 4;
+                                return 8; // Default elevation (simulates box-shadow)
+                              }),
+                            ),
                         child: _isLoading
                             ? const SizedBox(
                                 width: 24,
@@ -1093,7 +1195,11 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                           );
                         }
                       },
-                      icon: const Icon(Icons.face_retouching_natural_rounded, color: Color(0xFF94A3B8), size: 18),
+                      icon: const Icon(
+                        Icons.face_retouching_natural_rounded,
+                        color: Color(0xFF94A3B8),
+                        size: 18,
+                      ),
                       label: const Text(
                         'Use Face Recognition instead',
                         style: TextStyle(
@@ -1107,16 +1213,30 @@ class _ManualLoginScreenState extends State<ManualLoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Not registered? ', style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                        const Text(
+                          'Not registered? ',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 14,
+                          ),
+                        ),
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const RegistrationScreen(),
+                                builder: (context) =>
+                                    const RegistrationScreen(),
                               ),
                             );
                           },
-                          child: const Text('Sign Up', style: TextStyle(color: Color(0xFF00BCD4), fontSize: 14, fontWeight: FontWeight.w700)),
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Color(0xFF00BCD4),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -1158,12 +1278,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DateTime _currentTime = DateTime.now();
 
   // Settings state toggles
-  bool _autoFaceRecognition = true;
-  bool _livenessCheck = true;
-  bool _gpsHighAccuracy = true;
-  bool _morningReminder = true;
-  bool _eveningReminder = true;
-  bool _soundEffects = true;
+  final bool _autoFaceRecognition = true;
+  final bool _livenessCheck = true;
+  final bool _gpsHighAccuracy = true;
+  final bool _morningReminder = true;
+  final bool _eveningReminder = true;
+  final bool _soundEffects = true;
+
+  // Dynamic User Settings State (Matching UI/UX Design)
+  bool _attendanceAlertEnabled = true;
+  String _selectedSound = "Sound 1 (Standard Chime)";
+  List<Map<String, String>> _availableSounds = [
+    {
+      "label": "Sound 1 (Standard Chime)",
+      "file": "Sound 1.wav",
+      "url": "/static/Sound 1.wav",
+    },
+    {
+      "label": "Sound 2 (Soft Bell)",
+      "file": "Sound 2.wav",
+      "url": "/static/Sound 2.wav",
+    },
+    {
+      "label": "Sound 3 (Gentle Chime)",
+      "file": "Sound 3.wav",
+      "url": "/static/Sound 3.wav",
+    },
+    {
+      "label": "Sound 4 (Digital Pulse)",
+      "file": "Sound 4.wav",
+      "url": "/static/Sound 4.wav",
+    },
+    {
+      "label": "Sound 5 (Marimba Tone)",
+      "file": "Sound 5.wav",
+      "url": "/static/Sound 5.wav",
+    },
+    {
+      "label": "Sound 6 (Clear Ping)",
+      "file": "Sound 6.wav",
+      "url": "/static/Sound 6.wav",
+    },
+    {
+      "label": "Sound 7 (Echo Ding)",
+      "file": "Sound 7.wav",
+      "url": "/static/Sound 7.wav",
+    },
+    {
+      "label": "Sound 8 (Harp Melody)",
+      "file": "Sound 8.wav",
+      "url": "/static/Sound 8.wav",
+    },
+    {
+      "label": "Sound 9 (Classic Bell)",
+      "file": "Sound 9.wav",
+      "url": "/static/Sound 9.wav",
+    },
+    {
+      "label": "Sound 10 (Modern Alert)",
+      "file": "Sound 10.wav",
+      "url": "/static/Sound 10.wav",
+    },
+  ];
+  String _selectedTheme = "system"; // 'system', 'light', 'dark'
+  String _adminReminderTime = "08:30 AM";
+  String _adminReminderInterval = "Daily Reminders";
+  bool _isPlayingSound = false;
+  Timer? _soundPlayTimer;
 
   // Analytics / History State
   List<Map<String, dynamic>> _historyRecords = [];
@@ -1187,7 +1368,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _goalProgressPct = 0;
   double _hoursLeft = 40.0;
   String _hoursLeftText = "40.0 hours left to reach your weekly goal.";
-  DateTime _selectedCalendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _selectedCalendarMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   List<int> _presentDays = [];
   List<Map<String, dynamic>> _recentDashboardLogs = [];
   bool _isDashboardLoading = true;
@@ -1216,6 +1401,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchProfileData();
     _fetchLiveLocation();
     _initLiveLocationStream();
+    _loadLocalSettings();
+    _fetchSettingsData();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
@@ -1237,11 +1424,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final data = json.decode(response.body);
         if (data is Map<String, dynamic>) {
           setState(() {
-            _profileFullName = data['full_name']?.toString() ?? data['name']?.toString() ?? widget.userName;
-            _profileDob = data['dob_formatted']?.toString() ?? data['dob_display']?.toString() ?? "May 15, 1992";
+            _profileFullName =
+                data['full_name']?.toString() ??
+                data['name']?.toString() ??
+                widget.userName;
+            _profileDob =
+                data['dob_formatted']?.toString() ??
+                data['dob_display']?.toString() ??
+                "May 15, 1992";
             _profileGender = data['gender']?.toString() ?? "Male";
-            _profileEmail = data['email']?.toString() ?? "amartyakalita2004@gmail.com";
-            _profileRole = data['role_label']?.toString() ?? (data['role']?.toString() ?? widget.userRole).toUpperCase();
+            _profileEmail =
+                data['email']?.toString() ?? "amartyakalita2004@gmail.com";
+            _profileRole =
+                data['role_label']?.toString() ??
+                (data['role']?.toString() ?? widget.userRole).toUpperCase();
           });
         }
       }
@@ -1256,23 +1452,413 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _loadLocalSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('attendance_alert_enabled')) {
+        setState(() {
+          _attendanceAlertEnabled =
+              prefs.getBool('attendance_alert_enabled') ?? true;
+        });
+      }
+      if (prefs.containsKey('selected_sound')) {
+        setState(() {
+          _selectedSound =
+              prefs.getString('selected_sound') ?? "Sound 1 (Standard Chime)";
+        });
+      }
+      if (prefs.containsKey('selected_theme')) {
+        setState(() {
+          _selectedTheme = prefs.getString('selected_theme') ?? "system";
+        });
+      }
+    } catch (e) {
+      debugPrint("Error reading local preferences: $e");
+    }
+  }
+
+  Future<void> _fetchSettingsData() async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.mobileSettingsUrl}?name=${Uri.encodeComponent(widget.userName)}',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is Map<String, dynamic> && data['success'] == true) {
+          setState(() {
+            if (data['attendance_alert'] != null) {
+              _attendanceAlertEnabled = data['attendance_alert'] == true;
+            }
+            if (data['reminder_time_display'] != null) {
+              _adminReminderTime = data['reminder_time_display'].toString();
+            }
+            if (data['reminder_interval'] != null) {
+              _adminReminderInterval = data['reminder_interval'].toString();
+            }
+            if (data['email'] != null && data['email'].toString().isNotEmpty) {
+              _profileEmail = data['email'].toString();
+            }
+            if (data['sounds'] is List) {
+              final list = (data['sounds'] as List)
+                  .map(
+                    (e) => {
+                      "label":
+                          e['label']?.toString() ??
+                          e['file']?.toString() ??
+                          "Sound",
+                      "file": e['file']?.toString() ?? "",
+                      "url": e['url']?.toString() ?? "",
+                    },
+                  )
+                  .toList();
+              if (list.isNotEmpty) {
+                _availableSounds = list;
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching remote settings: $e");
+    }
+  }
+
+  Future<void> _saveSettingsToServer() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('attendance_alert_enabled', _attendanceAlertEnabled);
+    await prefs.setString('selected_sound', _selectedSound);
+    await prefs.setString('selected_theme', _selectedTheme);
+
+    try {
+      final url = Uri.parse(ApiConfig.mobileSettingsUpdateUrl);
+      await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'name': widget.userName,
+              'attendance_alert': _attendanceAlertEnabled,
+              'selected_sound': _selectedSound,
+              'theme': _selectedTheme,
+              'email': _profileEmail,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint("Error persisting settings to server: $e");
+    }
+  }
+
+  static const MethodChannel _audioChannel = MethodChannel(
+    'com.example.mobile_app/audio',
+  );
+
+  Future<void> _playAudioFromUrl(String audioUrl, String soundName) async {
+    try {
+      // Extract raw identifier (e.g. "sound_1" from "Sound 1 (Standard Chime)" or "Sound 1.wav")
+      String rawName = "";
+      final reg = RegExp(r'Sound\s*(\d+)', caseSensitive: false);
+      final match = reg.firstMatch(soundName);
+      if (match != null) {
+        rawName = "sound_${match.group(1)}";
+      }
+
+      await _audioChannel.invokeMethod('play', {
+        'rawName': rawName,
+        'url': audioUrl,
+      });
+    } catch (e) {
+      debugPrint("Audio playback error: $e");
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    try {
+      await _audioChannel.invokeMethod('stop');
+    } catch (e) {
+      debugPrint("Stop audio error: $e");
+    }
+  }
+
+  void _togglePlaySound() {
+    if (_isPlayingSound) {
+      _soundPlayTimer?.cancel();
+      _stopAudio();
+      setState(() {
+        _isPlayingSound = false;
+      });
+      return;
+    }
+
+    SystemSound.play(SystemSoundType.click);
+    HapticFeedback.lightImpact();
+
+    // Map selected sound to its URL stored in the database / static
+    final soundItem = _availableSounds.firstWhere(
+      (s) => s['label'] == _selectedSound || s['file'] == _selectedSound,
+      orElse: () => _availableSounds.isNotEmpty ? _availableSounds.first : {},
+    );
+    final rawPath = soundItem['url'] ?? '/media/Sound%201.wav';
+    final fullUrl = rawPath.startsWith('http')
+        ? rawPath
+        : '${ApiConfig.baseUrl}${rawPath.startsWith('/') ? '' : '/'}$rawPath';
+
+    _playAudioFromUrl(fullUrl, _selectedSound);
+
+    setState(() {
+      _isPlayingSound = true;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.volume_up_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Playing: $_selectedSound',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0084FF),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+
+    _soundPlayTimer?.cancel();
+    _soundPlayTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _isPlayingSound = false;
+        });
+      }
+    });
+  }
+
+  void _showChangeEmailDialog() {
+    final emailController = TextEditingController(text: _profileEmail);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool isUpdating = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.mail_outline_rounded,
+                    color: Color(0xFF0084FF),
+                    size: 24,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Change Email',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Enter your new email address. This will update your attendance account in the database.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(
+                          Icons.alternate_email_rounded,
+                          color: Color(0xFF0084FF),
+                          size: 20,
+                        ),
+                        hintText: 'name@example.com',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 14,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF0084FF),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter an email';
+                        }
+                        final emailRegex = RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        );
+                        if (!emailRegex.hasMatch(value.trim())) {
+                          return 'Please enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 14,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isUpdating ? null : () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0084FF),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                  ),
+                  onPressed: isUpdating
+                      ? null
+                      : () async {
+                          if (formKey.currentState?.validate() ?? false) {
+                            setDialogState(() => isUpdating = true);
+                            final newEmail = emailController.text.trim();
+                            setState(() {
+                              _profileEmail = newEmail;
+                            });
+                            await _saveSettingsToServer();
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Email updated to: $newEmail',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: const Color(0xFF10B981),
+                                  duration: const Duration(seconds: 3),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isUpdating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Email',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
     _timer.cancel();
     _positionStreamSub?.cancel();
     _searchController.dispose();
+    _soundPlayTimer?.cancel();
+    _stopAudio();
     super.dispose();
   }
 
   bool get _hasCheckedInToday {
     final now = DateTime.now();
-    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    
+    final todayStr =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
     for (var log in _recentDashboardLogs) {
       final date = log['date']?.toString();
       final dateDisplay = log['date_display']?.toString();
-      
+
       if (date == todayStr || dateDisplay == 'Today') {
         if (log['check_in'] != null && log['check_in'].toString().isNotEmpty) {
           return true;
@@ -1284,14 +1870,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   bool get _hasCheckedOutToday {
     final now = DateTime.now();
-    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    
+    final todayStr =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
     for (var log in _recentDashboardLogs) {
       final date = log['date']?.toString();
       final dateDisplay = log['date_display']?.toString();
-      
+
       if (date == todayStr || dateDisplay == 'Today') {
-        if (log['check_out'] != null && log['check_out'].toString().isNotEmpty && log['check_out'].toString() != '--:--') {
+        if (log['check_out'] != null &&
+            log['check_out'].toString().isNotEmpty &&
+            log['check_out'].toString() != '--:--') {
           return true;
         }
       }
@@ -1320,12 +1909,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (mounted) {
             setState(() {
               _weeklyHours = (data['weekly_hours'] as num?)?.toDouble() ?? 0.0;
-              _weeklyHoursText = data['weekly_hours_text']?.toString() ?? "${_weeklyHours.toStringAsFixed(1)} Hrs";
-              _goalProgressPct = (data['goal_progress_pct'] as num?)?.toInt() ?? 0;
+              _weeklyHoursText =
+                  data['weekly_hours_text']?.toString() ??
+                  "${_weeklyHours.toStringAsFixed(1)} Hrs";
+              _goalProgressPct =
+                  (data['goal_progress_pct'] as num?)?.toInt() ?? 0;
               _hoursLeft = (data['hours_left'] as num?)?.toDouble() ?? 40.0;
-              _hoursLeftText = data['hours_left_text']?.toString() ?? "${_hoursLeft.toStringAsFixed(1)} hours left to reach your weekly goal.";
+              _hoursLeftText =
+                  data['hours_left_text']?.toString() ??
+                  "${_hoursLeft.toStringAsFixed(1)} hours left to reach your weekly goal.";
               _presentDays = rawPresent.map((e) => (e as num).toInt()).toList();
-              _recentDashboardLogs = recs.map((e) => Map<String, dynamic>.from(e)).toList();
+              _recentDashboardLogs = recs
+                  .map((e) => Map<String, dynamic>.from(e))
+                  .toList();
 
               if (data['geofence'] != null && !LocationHelper.hasResolved) {
                 final geo = data['geofence'];
@@ -1381,15 +1977,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         accuracy: LocationAccuracy.high,
         distanceFilter: 15,
       );
-      _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
-        if (mounted) {
-          setState(() {
-            _currentLat = position.latitude;
-            _currentLon = position.longitude;
-            _currentAcc = position.accuracy > 0 ? position.accuracy : 145.0;
+      _positionStreamSub =
+          Geolocator.getPositionStream(
+            locationSettings: locationSettings,
+          ).listen((Position position) {
+            if (mounted) {
+              setState(() {
+                _currentLat = position.latitude;
+                _currentLon = position.longitude;
+                _currentAcc = position.accuracy > 0 ? position.accuracy : 145.0;
+              });
+            }
           });
-        }
-      });
     } catch (_) {}
   }
 
@@ -1423,8 +2022,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _getMonthName(int month) {
     const names = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return names[(month - 1).clamp(0, 11)];
   }
@@ -1455,7 +2064,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       _fetchDashboardData();
@@ -1480,15 +2091,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           setState(() {
             _totalHours = data['total_hours']?.toString() ?? "0.0";
-            _totalHoursProgress = (data['total_hours_progress'] as num?)?.toDouble() ?? 0.0;
+            _totalHoursProgress =
+                (data['total_hours_progress'] as num?)?.toDouble() ?? 0.0;
             _avgStart = data['avg_start']?.toString() ?? "--:--";
             _avgStartPeriod = data['avg_start_period']?.toString() ?? "";
             _avgIsOnTime = data['avg_is_on_time'] == true;
-            _selectedMonthName = data['selected_month']?.toString() ?? "All Records";
+            _selectedMonthName =
+                data['selected_month']?.toString() ?? "All Records";
             _selectedMonthKey = monthKey;
 
-            _availableMonths = rawMonths.map((e) => Map<String, dynamic>.from(e)).toList();
-            _historyRecords = recs.map((e) => Map<String, dynamic>.from(e)).toList();
+            _availableMonths = rawMonths
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+            _historyRecords = recs
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
           });
           return;
         }
@@ -1512,7 +2129,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final dateStr = (rec['date_display'] ?? '').toString().toLowerCase();
       final shiftStr = (rec['shift'] ?? '').toString().toLowerCase();
       final statusStr = (rec['status'] ?? '').toString().toLowerCase();
-      return dateStr.contains(_searchQuery) || shiftStr.contains(_searchQuery) || statusStr.contains(_searchQuery);
+      return dateStr.contains(_searchQuery) ||
+          shiftStr.contains(_searchQuery) ||
+          statusStr.contains(_searchQuery);
     }).toList();
   }
 
@@ -1541,10 +2160,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     const Text(
                       'Select Period',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF64748B),
+                      ),
                       onPressed: () => Navigator.of(ctx).pop(),
                     ),
                   ],
@@ -1560,12 +2186,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFE0F9FD) : const Color(0xFFF8FAFC),
+                        color: isSelected
+                            ? const Color(0xFFE0F9FD)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF0066FF) : const Color(0xFFE2E8F0),
+                          color: isSelected
+                              ? const Color(0xFF0066FF)
+                              : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Row(
@@ -1573,20 +2206,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Icon(
                             Icons.calendar_month_outlined,
                             size: 18,
-                            color: isSelected ? const Color(0xFF0066FF) : const Color(0xFF64748B),
+                            color: isSelected
+                                ? const Color(0xFF0066FF)
+                                : const Color(0xFF64748B),
                           ),
                           const SizedBox(width: 14),
                           Text(
                             monthOpt['label'] ?? '',
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                              color: isSelected ? const Color(0xFF0066FF) : const Color(0xFF1E293B),
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: isSelected
+                                  ? const Color(0xFF0066FF)
+                                  : const Color(0xFF1E293B),
                             ),
                           ),
                           const Spacer(),
                           if (isSelected)
-                            const Icon(Icons.check_circle_rounded, color: Color(0xFF0066FF), size: 20),
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF0066FF),
+                              size: 20,
+                            ),
                         ],
                       ),
                     ),
@@ -1609,14 +2252,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (BuildContext ctx) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: const Row(
             children: [
               Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 24),
               SizedBox(width: 10),
               Text(
                 'Log Out',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ],
           ),
@@ -1627,23 +2276,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const WelcomeScreen(),
+                  ),
                   (route) => false,
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
-              child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w800)),
+              child: const Text(
+                'Log Out',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         );
@@ -1657,8 +2319,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String minutes = _twoDigits(_currentTime.minute);
     String seconds = _twoDigits(_currentTime.second);
 
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
 
     String weekday = days[_currentTime.weekday - 1];
     String month = months[_currentTime.month - 1];
@@ -1670,111 +2353,141 @@ class _DashboardScreenState extends State<DashboardScreen> {
       daySuffix = 'th';
     } else {
       switch (day % 10) {
-        case 1: daySuffix = 'st'; break;
-        case 2: daySuffix = 'nd'; break;
-        case 3: daySuffix = 'rd'; break;
-        default: daySuffix = 'th';
+        case 1:
+          daySuffix = 'st';
+          break;
+        case 2:
+          daySuffix = 'nd';
+          break;
+        case 3:
+          daySuffix = 'rd';
+          break;
+        default:
+          daySuffix = 'th';
       }
     }
 
     String dateStr = '$weekday, $month $day$daySuffix, $year';
 
     return Scaffold(
-      backgroundColor: _currentIndex == 2 ? const Color(0xFFEEF4FA) : const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: _currentIndex == 2 ? const Color(0xFFEEF4FA) : const Color(0xFFF8FAFC),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        leading: _currentIndex == 1
-            ? Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Center(
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFDEC9),
-                      borderRadius: BorderRadius.circular(12),
+      backgroundColor: _currentIndex == 2
+          ? const Color(0xFFEEF4FA)
+          : const Color(0xFFF8FAFC),
+      appBar: _currentIndex == 3
+          ? null
+          : AppBar(
+              backgroundColor: _currentIndex == 2
+                  ? const Color(0xFFEEF4FA)
+                  : const Color(0xFFF8FAFC),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              automaticallyImplyLeading: false,
+              leading: _currentIndex == 1
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: Center(
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFDEC9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.person_rounded,
+                              color: Color(0xFFC2410C),
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
+              title: _currentIndex == 1
+                  ? const Text(
+                      'Attendance History',
+                      style: TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    )
+                  : Row(
+                      children: [
+                        const Icon(
+                          Icons.check_box_outlined,
+                          color: Color(0xFF0066FF),
+                          size: 28,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _getAppBarTitle(),
+                          style: const TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Center(
-                      child: Icon(Icons.person_rounded, color: Color(0xFFC2410C), size: 22),
-                    ),
-                  ),
-                ),
-              )
-            : null,
-        title: _currentIndex == 1
-            ? const Text(
-                'Attendance History',
-                style: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              )
-            : Row(
-                children: [
-                  const Icon(Icons.check_box_outlined, color: Color(0xFF0066FF), size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    _getAppBarTitle(),
-                    style: const TextStyle(
-                      color: Color(0xFF1E293B),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-        actions: _currentIndex == 1
-            ? [
-                IconButton(
-                  icon: Icon(
-                    _isSearching ? Icons.close_rounded : Icons.search_rounded,
-                    color: const Color(0xFF64748B),
-                    size: 24,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isSearching = !_isSearching;
-                      if (!_isSearching) {
-                        _searchQuery = '';
-                        _searchController.clear();
-                      }
-                    });
-                  },
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_rounded, color: Color(0xFF0066FF), size: 24),
-                    onPressed: () {},
-                  ),
-                ),
-              ]
-            : [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1E293B)),
-                  onPressed: () {},
-                ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 2; // Switch to Profile tab
-                    });
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 16.0, left: 8.0),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Color(0xFFEFF6FF),
-                      child: Icon(Icons.person, color: Color(0xFF0066FF)),
-                    ),
-                  ),
-                ),
-              ],
-      ),
+              actions: _currentIndex == 1
+                  ? [
+                      IconButton(
+                        icon: Icon(
+                          _isSearching
+                              ? Icons.close_rounded
+                              : Icons.search_rounded,
+                          color: const Color(0xFF64748B),
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isSearching = !_isSearching;
+                            if (!_isSearching) {
+                              _searchQuery = '';
+                              _searchController.clear();
+                            }
+                          });
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.notifications_rounded,
+                            color: Color(0xFF0066FF),
+                            size: 24,
+                          ),
+                          onPressed: () {},
+                        ),
+                      ),
+                    ]
+                  : [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Color(0xFF1E293B),
+                        ),
+                        onPressed: () {},
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 2; // Switch to Profile tab
+                          });
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 16.0, left: 8.0),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Color(0xFFEFF6FF),
+                            child: Icon(Icons.person, color: Color(0xFF0066FF)),
+                          ),
+                        ),
+                      ),
+                    ],
+            ),
       body: _buildBody(hours, minutes, seconds, dateStr),
       bottomNavigationBar: _buildCustomBottomNav(),
     );
@@ -1795,7 +2508,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildBody(String hours, String minutes, String seconds, String dateStr) {
+  Widget _buildBody(
+    String hours,
+    String minutes,
+    String seconds,
+    String dateStr,
+  ) {
     switch (_currentIndex) {
       case 0:
         return _buildHomeScreen(hours, minutes, seconds, dateStr);
@@ -1811,7 +2529,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== 1. HOME SCREEN ====================
-  Widget _buildHomeScreen(String hours, String minutes, String seconds, String dateStr) {
+  Widget _buildHomeScreen(
+    String hours,
+    String minutes,
+    String seconds,
+    String dateStr,
+  ) {
     return RefreshIndicator(
       onRefresh: () async {
         await _fetchDashboardData();
@@ -1889,12 +2612,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _buildTimeBlock(hours, 'HOURS', false),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(':', style: TextStyle(fontSize: 36, color: Color(0xFFCBD5E1), fontWeight: FontWeight.w600)),
+                        child: Text(
+                          ':',
+                          style: TextStyle(
+                            fontSize: 36,
+                            color: Color(0xFFCBD5E1),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       _buildTimeBlock(minutes, 'MINUTES', false),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(':', style: TextStyle(fontSize: 36, color: Color(0xFFCBD5E1), fontWeight: FontWeight.w600)),
+                        child: Text(
+                          ':',
+                          style: TextStyle(
+                            fontSize: 36,
+                            color: Color(0xFFCBD5E1),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       _buildTimeBlock(seconds, 'SECONDS', true),
                     ],
@@ -1924,8 +2661,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           context: context,
                           builder: (context) => Dialog(
                             backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            insetPadding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(20.0),
                               child: Column(
@@ -1943,7 +2684,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           color: Colors.grey.shade100,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.close, size: 18, color: Colors.black54),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: Colors.black54,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1956,10 +2701,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         width: 72,
                                         height: 72,
                                         decoration: const BoxDecoration(
-                                          color: Color(0xFFE8F1FF), // Light blue background
+                                          color: Color(
+                                            0xFFE8F1FF,
+                                          ), // Light blue background
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.history_toggle_off, color: Color(0xFF0066FF), size: 32),
+                                        child: const Icon(
+                                          Icons.history_toggle_off,
+                                          color: Color(0xFF0066FF),
+                                          size: 32,
+                                        ),
                                       ),
                                       Positioned(
                                         bottom: 0,
@@ -1969,9 +2720,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           decoration: BoxDecoration(
                                             color: const Color(0xFF0066FF),
                                             shape: BoxShape.circle,
-                                            border: Border.all(color: Colors.white, width: 3),
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 3,
+                                            ),
                                           ),
-                                          child: const Icon(Icons.check, color: Colors.white, size: 12),
+                                          child: const Icon(
+                                            Icons.check,
+                                            color: Colors.white,
+                                            size: 12,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1980,14 +2738,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   // Title
                                   const Text(
                                     'Already Checked In',
-                                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E293B),
+                                    ),
                                   ),
                                   const SizedBox(height: 12),
                                   // Message
                                   const Text(
                                     'You have already checked in for today. Next window opens at 05:00 PM.',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF64748B),
+                                      height: 1.5,
+                                    ),
                                   ),
                                   const SizedBox(height: 28),
                                   // Button
@@ -1996,16 +2762,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     child: ElevatedButton(
                                       onPressed: () => Navigator.pop(context),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0066FF),
+                                        backgroundColor: const Color(
+                                          0xFF0066FF,
+                                        ),
                                         foregroundColor: Colors.white,
                                         elevation: 0,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
                                       ),
                                       child: const Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Text('Got It', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                          Text(
+                                            'Got It',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                           SizedBox(width: 8),
                                           Icon(Icons.arrow_forward, size: 18),
                                         ],
@@ -2029,10 +2810,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      shadowColor: const Color(0xFF0066FF).withValues(alpha: 0.3),
-                    ).copyWith(
-                      elevation: WidgetStateProperty.all(6),
-                    ),
+                      shadowColor: const Color(
+                        0xFF0066FF,
+                      ).withValues(alpha: 0.3),
+                    ).copyWith(elevation: WidgetStateProperty.all(6)),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -2040,7 +2821,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         SizedBox(width: 8),
                         Text(
                           'Check In',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ],
                     ),
@@ -2049,14 +2833,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: (_hasCheckedInToday && !_hasCheckedOutToday) ? () => _openAttendanceScanner(true) : null,
+                    onPressed: (_hasCheckedInToday && !_hasCheckedOutToday)
+                        ? () => _openAttendanceScanner(true)
+                        : null,
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF0066FF),
                       disabledForegroundColor: Colors.grey.shade400,
                       side: BorderSide(
-                        color: (_hasCheckedInToday && !_hasCheckedOutToday) ? const Color(0xFF0066FF) : Colors.grey.shade300, 
-                        width: 2
+                        color: (_hasCheckedInToday && !_hasCheckedOutToday)
+                            ? const Color(0xFF0066FF)
+                            : Colors.grey.shade300,
+                        width: 2,
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -2070,7 +2858,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         SizedBox(width: 8),
                         Text(
                           'Check Out',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ],
                     ),
@@ -2137,22 +2928,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ..._recentDashboardLogs.take(3).expand((item) {
                 final checkInStr = item['check_in'] as String?;
                 final checkOutStr = item['check_out'] as String?;
-                final dateDisplay = item['date_display']?.toString() ?? item['date']?.toString() ?? 'Today';
+                final dateDisplay =
+                    item['date_display']?.toString() ??
+                    item['date']?.toString() ??
+                    'Today';
 
                 List<Widget> logs = [];
 
-                logs.add(_buildLogItem(
-                  isCheckIn: true,
-                  time: (item['status'] == 'OUT OF RADIUS') ? '--:--' : (checkInStr ?? '--:--'),
-                  date: dateDisplay,
-                ));
+                logs.add(
+                  _buildLogItem(
+                    isCheckIn: true,
+                    time: (item['status'] == 'OUT OF RADIUS')
+                        ? '--:--'
+                        : (checkInStr ?? '--:--'),
+                    date: dateDisplay,
+                  ),
+                );
 
                 if (checkOutStr != null) {
-                  logs.add(_buildLogItem(
-                    isCheckIn: false,
-                    time: (item['status'] == 'OUT OF RADIUS') ? '--:--' : checkOutStr,
-                    date: dateDisplay,
-                  ));
+                  logs.add(
+                    _buildLogItem(
+                      isCheckIn: false,
+                      time: (item['status'] == 'OUT OF RADIUS')
+                          ? '--:--'
+                          : checkOutStr,
+                      date: dateDisplay,
+                    ),
+                  );
                 }
                 return logs;
               }),
@@ -2282,9 +3084,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
                   widthFactor: (_goalProgressPct / 100.0).clamp(0.0, 1.0),
-                  child: Container(
-                    color: Colors.white,
-                  ),
+                  child: Container(color: Colors.white),
                 ),
               ),
             ),
@@ -2346,7 +3146,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: const Padding(
                       padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.chevron_left_rounded, color: Color(0xFF334155), size: 22),
+                      child: Icon(
+                        Icons.chevron_left_rounded,
+                        color: Color(0xFF334155),
+                        size: 22,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2355,7 +3159,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: const Padding(
                       padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.chevron_right_rounded, color: Color(0xFF334155), size: 22),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF334155),
+                        size: 22,
+                      ),
                     ),
                   ),
                 ],
@@ -2460,10 +3268,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     for (int d = 1; d <= daysInMonth; d++) {
       final isPresent = _presentDays.contains(d);
-      
+
       final cellDate = DateTime(year, month, d);
       final todayDate = DateTime(now.year, now.month, now.day);
-      final isPastWeekday = cellDate.isBefore(todayDate) && cellDate.weekday <= 5;
+      final isPastWeekday =
+          cellDate.isBefore(todayDate) && cellDate.weekday <= 5;
       final isAbsent = isPastWeekday && !isPresent;
 
       BoxDecoration? decoration;
@@ -2591,9 +3400,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0066FF)),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF0066FF),
+                        ),
                       )
-                    : const Icon(Icons.my_location_rounded, color: Color(0xFF0066FF), size: 20),
+                    : const Icon(
+                        Icons.my_location_rounded,
+                        color: Color(0xFF0066FF),
+                        size: 20,
+                      ),
                 onPressed: _fetchLiveLocation,
                 tooltip: 'Update Live Location',
               ),
@@ -2623,7 +3439,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                    urlTemplate:
+                        'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                     userAgentPackageName: 'com.example.app',
                   ),
                   MarkerLayer(
@@ -2649,7 +3466,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildLogItem({required bool isCheckIn, required String time, required String date}) {
+  Widget _buildLogItem({
+    required bool isCheckIn,
+    required String time,
+    required String date,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -2671,12 +3492,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: isCheckIn ? const Color(0xFFE8FBFF) : const Color(0xFFF1F5F9),
+              color: isCheckIn
+                  ? const Color(0xFFE8FBFF)
+                  : const Color(0xFFF1F5F9),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isCheckIn ? Icons.login_rounded : Icons.logout_rounded,
-              color: isCheckIn ? const Color(0xFF0066FF) : const Color(0xFF94A3B8),
+              color: isCheckIn
+                  ? const Color(0xFF0066FF)
+                  : const Color(0xFF94A3B8),
               size: 20,
             ),
           ),
@@ -2708,13 +3533,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isCheckIn ? const Color(0xFFE0FBEA) : const Color(0xFFF1F5F9),
+              color: isCheckIn
+                  ? const Color(0xFFE0FBEA)
+                  : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               time,
               style: TextStyle(
-                color: isCheckIn ? const Color(0xFF00B368) : const Color(0xFF64748B),
+                color: isCheckIn
+                    ? const Color(0xFF00B368)
+                    : const Color(0xFF64748B),
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
@@ -2728,7 +3557,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ==================== 2. ANALYTICS / HISTORY SCREEN ====================
   Widget _buildAnalyticsScreen() {
     final displayRecords = _getFilteredRecords();
-    final recordsToShow = _showAllRecords ? displayRecords : displayRecords.take(4).toList();
+    final recordsToShow = _showAllRecords
+        ? displayRecords
+        : displayRecords.take(4).toList();
 
     return RefreshIndicator(
       onRefresh: () => _fetchAnalyticsData(monthKey: _selectedMonthKey),
@@ -2765,11 +3596,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                   decoration: InputDecoration(
                     hintText: 'Search by date, status, or shift...',
-                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF00BCD4), size: 20),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF00BCD4),
+                      size: 20,
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF94A3B8)),
+                            icon: const Icon(
+                              Icons.clear_rounded,
+                              size: 18,
+                              color: Color(0xFF94A3B8),
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -2919,9 +3761,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: _avgIsOnTime ? const Color(0xFFE0F9FD) : const Color(0xFFFEE2E2),
+                            color: _avgIsOnTime
+                                ? const Color(0xFFE0F9FD)
+                                : const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -2929,7 +3776,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w800,
-                              color: _avgIsOnTime ? const Color(0xFF00BCD4) : const Color(0xFFEF4444),
+                              color: _avgIsOnTime
+                                  ? const Color(0xFF00BCD4)
+                                  : const Color(0xFFEF4444),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -2957,14 +3806,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 GestureDetector(
                   onTap: _openMonthPicker,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEAEFF4),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.calendar_month_outlined, size: 16, color: Color(0xFF475569)),
+                        Icon(
+                          Icons.calendar_month_outlined,
+                          size: 16,
+                          color: Color(0xFF475569),
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'Select Month',
@@ -3000,11 +3856,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: const Column(
                   children: [
-                    Icon(Icons.event_busy_rounded, size: 48, color: Color(0xFF94A3B8)),
+                    Icon(
+                      Icons.event_busy_rounded,
+                      size: 48,
+                      color: Color(0xFF94A3B8),
+                    ),
                     SizedBox(height: 12),
                     Text(
                       'No records found for this period',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF64748B), fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
@@ -3025,14 +3889,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFE2E8F0),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 14,
+                    ),
                   ),
                   child: Text(
-                    _showAllRecords ? 'Show Less Records' : 'Show Previous Records',
+                    _showAllRecords
+                        ? 'Show Less Records'
+                        : 'Show Previous Records',
                     style: const TextStyle(
                       color: Color(0xFF1E293B),
                       fontSize: 14,
@@ -3110,7 +3982,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 4.5,
+                ),
                 decoration: BoxDecoration(
                   color: chipBgColor,
                   borderRadius: BorderRadius.circular(8),
@@ -3148,7 +4023,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      rec['status'] == 'OUT OF RADIUS' ? '--:--' : (rec['check_in'] ?? '--:--'),
+                      rec['status'] == 'OUT OF RADIUS'
+                          ? '--:--'
+                          : (rec['check_in'] ?? '--:--'),
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w900,
@@ -3175,7 +4052,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      rec['status'] == 'OUT OF RADIUS' ? '--:--' : (rec['check_out'] ?? '--:--'),
+                      rec['status'] == 'OUT OF RADIUS'
+                          ? '--:--'
+                          : (rec['check_out'] ?? '--:--'),
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w900,
@@ -3246,7 +4125,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             border: Border.all(color: Colors.white, width: 2.5),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF007AFF).withValues(alpha: 0.35),
+                                color: const Color(
+                                  0xFF007AFF,
+                                ).withValues(alpha: 0.35),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -3284,7 +4165,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               GestureDetector(
                 onTap: _showEditProfileModal,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 8.5,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0A7DFF),
                     borderRadius: BorderRadius.circular(30),
@@ -3331,7 +4215,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: const Color(0xFFE2E8F0).withValues(alpha: 0.6)),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF0F172A).withValues(alpha: 0.04),
@@ -3346,7 +4232,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Card Title Row
                     const Row(
                       children: [
-                        Icon(Icons.person_rounded, size: 20, color: Color(0xFF0F172A)),
+                        Icon(
+                          Icons.person_rounded,
+                          size: 20,
+                          color: Color(0xFF0F172A),
+                        ),
                         SizedBox(width: 10),
                         Text(
                           'Personal Information',
@@ -3366,18 +4256,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: _buildProfileCardField('FULLNAME', _profileFullName),
+                          child: _buildProfileCardField(
+                            'FULLNAME',
+                            _profileFullName,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildProfileCardField('DATE OF BIRTH', _profileDob),
+                          child: _buildProfileCardField(
+                            'DATE OF BIRTH',
+                            _profileDob,
+                          ),
                         ),
                       ],
                     ),
 
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                      child: Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Color(0xFFF1F5F9),
+                      ),
                     ),
 
                     // Row 2: GENDER
@@ -3385,11 +4285,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 18),
 
                     // Row 3: EMAIL ADDRESS
-                    _buildProfileCardField('EMAIL ADDRESS', _profileEmail, isEmail: true),
+                    _buildProfileCardField(
+                      'EMAIL ADDRESS',
+                      _profileEmail,
+                      isEmail: true,
+                    ),
 
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                      child: Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Color(0xFFF1F5F9),
+                      ),
                     ),
 
                     // Row 4: ACCOUNT ROLE
@@ -3407,7 +4315,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 6.5,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF0F172A),
                             borderRadius: BorderRadius.circular(30),
@@ -3432,10 +4343,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Center(
                 child: TextButton.icon(
                   onPressed: _showLogoutDialog,
-                  icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 16),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 16,
+                  ),
                   label: const Text(
                     'Log Out',
-                    style: TextStyle(color: Color(0xFFEF4444), fontSize: 13.5, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -3447,7 +4366,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProfileCardField(String label, String value, {bool isEmail = false}) {
+  Widget _buildProfileCardField(
+    String label,
+    String value, {
+    bool isEmail = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3516,7 +4439,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF64748B),
+                        ),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),
                     ],
@@ -3526,7 +4452,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     controller: nameCtrl,
                     decoration: InputDecoration(
                       labelText: 'Full Name',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       prefixIcon: const Icon(Icons.person_outline_rounded),
                     ),
                   ),
@@ -3535,16 +4463,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     controller: dobCtrl,
                     decoration: InputDecoration(
                       labelText: 'Date of Birth (e.g. May 15, 1992)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       prefixIcon: const Icon(Icons.calendar_today_outlined),
                     ),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
-                    initialValue: ['Male', 'Female', 'Other'].contains(selectedGender) ? selectedGender : 'Male',
+                    initialValue:
+                        ['Male', 'Female', 'Other'].contains(selectedGender)
+                        ? selectedGender
+                        : 'Male',
                     decoration: InputDecoration(
                       labelText: 'Gender',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       prefixIcon: const Icon(Icons.people_outline_rounded),
                     ),
                     items: const [
@@ -3563,22 +4498,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     controller: emailCtrl,
                     decoration: InputDecoration(
                       labelText: 'Email Address',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       prefixIcon: const Icon(Icons.email_outlined),
                     ),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
-                    initialValue: ['Employee', 'Student', 'Teacher', 'Admin'].contains(selectedRole) ? selectedRole : 'Employee',
+                    initialValue:
+                        [
+                          'Employee',
+                          'Student',
+                          'Teacher',
+                          'Admin',
+                        ].contains(selectedRole)
+                        ? selectedRole
+                        : 'Employee',
                     decoration: InputDecoration(
                       labelText: 'Account Role',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       prefixIcon: const Icon(Icons.badge_outlined),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Employee', child: Text('Employee')),
-                      DropdownMenuItem(value: 'Student', child: Text('Student')),
-                      DropdownMenuItem(value: 'Teacher', child: Text('Teacher')),
+                      DropdownMenuItem(
+                        value: 'Employee',
+                        child: Text('Employee'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Student',
+                        child: Text('Student'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Teacher',
+                        child: Text('Teacher'),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -3615,10 +4571,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   _fetchProfileData();
                                   messenger.showSnackBar(
                                     SnackBar(
-                                      content: const Text('Profile updated successfully!'),
+                                      content: const Text(
+                                        'Profile updated successfully!',
+                                      ),
                                       backgroundColor: const Color(0xFF10B981),
                                       behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   );
                                 }
@@ -3632,17 +4592,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0A7DFF),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: isSaving
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Text(
                               'Save Changes',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                             ),
                     ),
                   ),
@@ -3655,182 +4624,678 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-
-  // ==================== 4. SETTINGS SCREEN ====================
+  // ==================== 4. SETTINGS SCREEN (EXACT UI/UX DESIGN) ====================
   Widget _buildSettingsScreen() {
-    return SingleChildScrollView(
-      child: Padding(
+    return SafeArea(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 20),
+            // Header: Circular Gear Badge & Title
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0284C7).withOpacity(0.08),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.settings_outlined,
+                    color: Color(0xFF0084FF),
+                    size: 34,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text(
-              'System Settings',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF1E293B),
+            const Center(
+              child: Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Manage facial scanner, geofence, and notifications',
-              style: TextStyle(
-                fontSize: 15,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w500,
+            const SizedBox(height: 6),
+            const Center(
+              child: Text(
+                'Manage preferences, security, and profile details',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
 
-            // Section: Face & Biometrics
-            _buildSettingsCategory('BIOMETRIC SCANNER'),
-            _buildSwitchTile(
-              title: 'Auto Check-in on Scan',
-              subtitle: 'Mark attendance immediately once face verified',
-              icon: Icons.face_retouching_natural_rounded,
-              value: _autoFaceRecognition,
-              onChanged: (v) => setState(() => _autoFaceRecognition = v),
+            // SECTION 1: NOTIFICATION PREFERENCES
+            _buildCategoryHeader(
+              Icons.notifications_none_rounded,
+              'NOTIFICATION PREFERENCES',
             ),
-            _buildSwitchTile(
-              title: 'Liveness & Anti-Spoofing',
-              subtitle: 'Ensure genuine face detection to avoid spoofing',
-              icon: Icons.shield_outlined,
-              value: _livenessCheck,
-              onChanged: (v) => setState(() => _livenessCheck = v),
-            ),
-            const SizedBox(height: 20),
-
-            // Section: Location & Geofencing
-            _buildSettingsCategory('GEOFENCING & LOCATION'),
-            _buildSwitchTile(
-              title: 'High Accuracy GPS',
-              subtitle: 'Verify within 500m office site perimeter',
-              icon: Icons.location_on_outlined,
-              value: _gpsHighAccuracy,
-              onChanged: (v) => setState(() => _gpsHighAccuracy = v),
-            ),
-            const SizedBox(height: 20),
-
-            // Section: Reminders & Sounds
-            _buildSettingsCategory('REMINDERS & AUDIO'),
-            _buildSwitchTile(
-              title: 'Morning Check-in Alert',
-              subtitle: 'Reminder notify at 08:45 AM',
-              icon: Icons.alarm_rounded,
-              value: _morningReminder,
-              onChanged: (v) => setState(() => _morningReminder = v),
-            ),
-            _buildSwitchTile(
-              title: 'Evening Check-out Alert',
-              subtitle: 'Reminder notify at 05:00 PM',
-              icon: Icons.alarm_on_rounded,
-              value: _eveningReminder,
-              onChanged: (v) => setState(() => _eveningReminder = v),
-            ),
-            _buildSwitchTile(
-              title: 'Sound Effects on Scan',
-              subtitle: 'Play chime confirmation sound',
-              icon: Icons.volume_up_outlined,
-              value: _soundEffects,
-              onChanged: (v) => setState(() => _soundEffects = v),
-            ),
-            const SizedBox(height: 20),
-
-            // Section: App Version
-            _buildSettingsCategory('APP DETAILS'),
             Container(
-              padding: const EdgeInsets.all(18),
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.025),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AttendancePro Version', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-                  Text('v2.4.0 (2026)', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                  // Row 1: Attendance Alert & Switch
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Attendance Alert',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Receive reminders for checking in and out of your shifts.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                height: 1.35,
+                              ),
+                            ),
+                            if (_adminReminderTime.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                '⏰ Admin Schedule: $_adminReminderTime ($_adminReminderInterval)',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0284C7),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      CupertinoSwitch(
+                        value: _attendanceAlertEnabled,
+                        activeColor: const Color(0xFF0084FF),
+                        onChanged: (val) {
+                          setState(() {
+                            _attendanceAlertEnabled = val;
+                          });
+                          _saveSettingsToServer();
+                        },
+                      ),
+                    ],
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 18),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF1F5F9),
+                    ),
+                  ),
+                  // Row 2: Notification Sound Selector & Play Preview Button
+                  const Text(
+                    'Notification Sound',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Choose the sound for your attendance alerts.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value:
+                                  _availableSounds.any(
+                                    (s) => s['label'] == _selectedSound,
+                                  )
+                                  ? _selectedSound
+                                  : (_availableSounds.isNotEmpty
+                                        ? _availableSounds.first['label']
+                                        : "Sound 1 (Standard Chime)"),
+                              isExpanded: true,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: Color(0xFF64748B),
+                                size: 22,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                              ),
+                              items: _availableSounds.map((s) {
+                                final lbl = s['label'] ?? "Sound";
+                                return DropdownMenuItem<String>(
+                                  value: lbl,
+                                  child: Text(
+                                    lbl,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedSound = val;
+                                  });
+                                  _saveSettingsToServer();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      InkWell(
+                        onTap: _togglePlaySound,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFBAE6FD)),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              _isPlayingSound
+                                  ? Icons.stop_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: const Color(0xFF0084FF),
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 36),
+
+            // SECTION 2: BIOMETRIC SECURITY
+            _buildCategoryHeader(
+              Icons.verified_user_outlined,
+              'BIOMETRIC SECURITY',
+            ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.025),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F7FA),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.sentiment_satisfied_alt_outlined,
+                            color: Color(0xFF0084FF),
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Face Recognition Enrollment',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Improve face recognition accuracy for your clock-in sessions. Ensure you are in a well-lit environment for the best results.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0084FF),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegistrationScreen(),
+                          ),
+                        );
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.sync_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Recalibrate Face Data',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // SECTION 3: APPEARANCE
+            _buildCategoryHeader(Icons.style_outlined, 'APPEARANCE'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Row(
+                children: [
+                  // System Default Card
+                  Expanded(
+                    child: _buildThemeCard(
+                      id: 'system',
+                      title: 'System\nDefault',
+                      subtitle: 'Match device',
+                      icon: Icons.computer_rounded,
+                      isSelected: _selectedTheme == 'system',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Light Mode Card
+                  Expanded(
+                    child: _buildThemeCard(
+                      id: 'light',
+                      title: 'Light',
+                      subtitle: 'Classic clean',
+                      icon: Icons.wb_sunny_outlined,
+                      isSelected: _selectedTheme == 'light',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Dark Mode Card
+                  Expanded(
+                    child: _buildThemeCard(
+                      id: 'dark',
+                      title: 'Dark',
+                      subtitle: 'Easier eyes',
+                      icon: Icons.nightlight_round,
+                      isSelected: _selectedTheme == 'dark',
+                      isDarkCard: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // SECTION 4: CONTACT INFORMATION
+            _buildCategoryHeader(
+              Icons.alternate_email_rounded,
+              'CONTACT INFORMATION',
+            ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 36),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.025),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Email Address',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.mail_outline_rounded,
+                          size: 20,
+                          color: Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _profileEmail.isNotEmpty
+                                ? _profileEmail
+                                : 'amartyakalita2004@gmail.com',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: _showChangeEmailDialog,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0F2FE),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 13,
+                                  color: Color(0xFF0084FF),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Change',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0084FF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0084FF),
+                        side: const BorderSide(
+                          color: Color(0xFF0084FF),
+                          width: 1.4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _showChangeEmailDialog,
+                      icon: const Icon(
+                        Icons.mark_email_read_outlined,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Change Email Address',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Changing your email requires verification via your old address.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF94A3B8),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsCategory(String title) {
+  Widget _buildCategoryHeader(IconData icon, String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF94A3B8),
-          letterSpacing: 1.2,
-        ),
+      padding: const EdgeInsets.only(left: 2, bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF0084FF), size: 17),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF0084FF),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSwitchTile({
+  Widget _buildThemeCard({
+    required String id,
     required String title,
     required String subtitle,
     required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
+    required bool isSelected,
+    bool isDarkCard = false,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0F9FD),
-              borderRadius: BorderRadius.circular(12),
+    final bgColor = isDarkCard ? const Color(0xFF0D1326) : Colors.white;
+    final titleColor = isDarkCard ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor = isDarkCard
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
+    final iconColor = isDarkCard
+        ? Colors.white
+        : (isSelected ? const Color(0xFF0084FF) : const Color(0xFF64748B));
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedTheme = id;
+        });
+        _saveSettingsToServer();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Theme set to: ${id[0].toUpperCase()}${id.substring(1)} Mode',
             ),
-            child: Icon(icon, color: const Color(0xFF00BCD4), size: 20),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-              ],
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
-          Switch.adaptive(
-            value: value,
-            activeTrackColor: const Color(0xFF00BCD4),
-            activeThumbColor: Colors.white,
-            onChanged: onChanged,
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 122,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0084FF)
+                : (isDarkCard ? Colors.transparent : const Color(0xFFE2E8F0)),
+            width: isSelected ? 2.2 : 1,
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            if (isSelected)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0084FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.check, size: 12, color: Colors.white),
+                  ),
+                ),
+              ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 26, color: iconColor),
+                    const SizedBox(height: 8),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: titleColor,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: subtitleColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3846,7 +5311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -3861,10 +5326,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
           child: Row(
             children: [
-              _buildNavItem(icon: Icons.home_rounded, label: 'HOME', index: 0),
-              _buildNavItem(icon: Icons.history_rounded, label: 'HISTORY', index: 1),
-              _buildNavItem(icon: Icons.person_outline_rounded, label: 'PROFILE', index: 2),
-              _buildNavItem(icon: Icons.settings_outlined, label: 'SETTINGS', index: 3),
+              _buildNavItem(icon: Icons.home_outlined, label: 'Home', index: 0),
+              _buildNavItem(
+                icon: Icons.bar_chart_rounded,
+                label: 'History',
+                index: 1,
+              ),
+              _buildNavItem(
+                icon: Icons.person_outline_rounded,
+                label: 'Profile',
+                index: 2,
+              ),
+              _buildNavItem(
+                icon: Icons.settings_outlined,
+                label: 'Settings',
+                index: 3,
+              ),
             ],
           ),
         ),
@@ -3872,10 +5349,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
     final isActive = _currentIndex == index;
-    const activeCyan = Color(0xFF00BCD4);
-    const activeBgCyan = Color(0xFFE0F9FD);
+    const activeBlue = Color(0xFF0084FF);
+    const activeBgBlue = Color(0xFFE0F2FE);
     const inactiveColor = Color(0xFF8E9BAE);
 
     return Expanded(
@@ -3892,27 +5373,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Container(
               width: 52,
-              height: 38,
+              height: 36,
               decoration: BoxDecoration(
-                color: isActive ? activeBgCyan : Colors.transparent,
+                color: isActive ? activeBgBlue : Colors.transparent,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
                 child: Icon(
                   icon,
-                  color: isActive ? activeCyan : inactiveColor,
+                  color: isActive ? activeBlue : inactiveColor,
                   size: 22,
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w900 : FontWeight.w800,
-                color: isActive ? activeCyan : inactiveColor,
-                letterSpacing: 0.8,
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                color: isActive ? activeBlue : inactiveColor,
               ),
             ),
           ],
@@ -3927,10 +5407,12 @@ class FaceRecognitionScannerScreen extends StatefulWidget {
   const FaceRecognitionScannerScreen({super.key, this.isCheckOut = false});
 
   @override
-  State<FaceRecognitionScannerScreen> createState() => _FaceRecognitionScannerScreenState();
+  State<FaceRecognitionScannerScreen> createState() =>
+      _FaceRecognitionScannerScreenState();
 }
 
-class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScreen> {
+class _FaceRecognitionScannerScreenState
+    extends State<FaceRecognitionScannerScreen> {
   final String _statusMessage = "Scanning... Please look into the camera";
 
   @override
@@ -3949,7 +5431,11 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
               color: Color(0xFFF8FAFC),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B), size: 18),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF1E293B),
+              size: 18,
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -3968,10 +5454,7 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color(0xFFF1F5F9),
-            height: 1.0,
-          ),
+          child: Container(color: const Color(0xFFF1F5F9), height: 1.0),
         ),
       ),
       body: SingleChildScrollView(
@@ -3980,7 +5463,9 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.isCheckOut ? 'Face Recognition Check-Out' : 'Face Recognition Check-In',
+              widget.isCheckOut
+                  ? 'Face Recognition Check-Out'
+                  : 'Face Recognition Check-In',
               style: const TextStyle(
                 color: Color(0xFF1E293B),
                 fontSize: 24,
@@ -3989,13 +5474,10 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
             ),
             const SizedBox(height: 8),
             Text(
-              widget.isCheckOut 
-                ? 'Look at the camera to securely check out.'
-                : 'Position your face within the frame for secure biometric verification.',
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 15,
-              ),
+              widget.isCheckOut
+                  ? 'Look at the camera to securely check out.'
+                  : 'Position your face within the frame for secure biometric verification.',
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
             ),
             const SizedBox(height: 32),
 
@@ -4020,7 +5502,11 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: const Center(
-                      child: Icon(Icons.face_retouching_natural_rounded, size: 80, color: Colors.black26),
+                      child: Icon(
+                        Icons.face_retouching_natural_rounded,
+                        size: 80,
+                        color: Colors.black26,
+                      ),
                     ),
                   ),
                 ),
@@ -4070,7 +5556,10 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
                     style: OutlinedButton.styleFrom(
                       backgroundColor: const Color(0xFFEEF2F6),
                       foregroundColor: const Color(0xFF0A7DFF),
-                      side: const BorderSide(color: Color(0xFF0A7DFF), width: 2),
+                      side: const BorderSide(
+                        color: Color(0xFF0A7DFF),
+                        width: 2,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -4081,7 +5570,13 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
                       children: [
                         Icon(Icons.close_rounded, size: 18),
                         SizedBox(width: 8),
-                        Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -4098,16 +5593,22 @@ class _FaceRecognitionScannerScreenState extends State<FaceRecognitionScannerScr
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      shadowColor: const Color(0xFF00F0FF).withValues(alpha: 0.4),
-                    ).copyWith(
-                      elevation: WidgetStateProperty.all(8),
-                    ),
+                      shadowColor: const Color(
+                        0xFF00F0FF,
+                      ).withValues(alpha: 0.4),
+                    ).copyWith(elevation: WidgetStateProperty.all(8)),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.refresh_rounded, size: 18),
                         SizedBox(width: 8),
-                        Text('Retry', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(
+                          'Retry',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -4171,7 +5672,7 @@ class SuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -4182,7 +5683,7 @@ class SuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
@@ -4220,7 +5721,10 @@ class SuccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
@@ -4276,14 +5780,14 @@ class _CalendarHeaderCell extends StatelessWidget {
   }
 }
 
-
 class AttendanceScannerScreen extends StatefulWidget {
   final bool isCheckOut;
-  
+
   const AttendanceScannerScreen({super.key, required this.isCheckOut});
 
   @override
-  State<AttendanceScannerScreen> createState() => _AttendanceScannerScreenState();
+  State<AttendanceScannerScreen> createState() =>
+      _AttendanceScannerScreenState();
 }
 
 class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
@@ -4328,7 +5832,7 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
         });
         return;
       }
-      
+
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -4361,8 +5865,12 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
   }
 
   Future<void> _scanNow() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-    if (_isLoading) return;
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+    if (_isLoading) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -4378,17 +5886,15 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
       double lat = position?.latitude ?? 0.0;
       double lon = position?.longitude ?? 0.0;
 
-      final url = widget.isCheckOut ? ApiConfig.checkoutScanUrl : ApiConfig.checkinScanUrl;
+      final url = widget.isCheckOut
+          ? ApiConfig.checkoutScanUrl
+          : ApiConfig.checkinScanUrl;
 
       final response = await http
           .post(
             Uri.parse(url),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'image': base64Image,
-              'lat': lat,
-              'lon': lon,
-            }),
+            body: jsonEncode({'image': base64Image, 'lat': lat, 'lon': lon}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -4404,11 +5910,13 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
       }
     } on TimeoutException {
       setState(() {
-        _errorMessage = 'Connection timed out. Please ensure backend server is running.';
+        _errorMessage =
+            'Connection timed out. Please ensure backend server is running.';
       });
     } on SocketException {
       setState(() {
-        _errorMessage = 'Network error connecting to ${ApiConfig.baseUrl}. Make sure your server is running.';
+        _errorMessage =
+            'Network error connecting to ${ApiConfig.baseUrl}. Make sure your server is running.';
       });
     } catch (e) {
       setState(() {
@@ -4436,7 +5944,11 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
           child: Container(
             color: Colors.transparent,
             padding: const EdgeInsets.all(16.0),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF0F172A),
+              size: 20,
+            ),
           ),
         ),
         title: Text(
@@ -4449,10 +5961,7 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color(0xFFE2E8F0),
-            height: 1.0,
-          ),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
         ),
       ),
       body: SafeArea(
@@ -4462,13 +5971,18 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 32.0,
+                  ),
                   child: IntrinsicHeight(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          widget.isCheckOut ? 'Check Out Scan' : 'Check In Scan',
+                          widget.isCheckOut
+                              ? 'Check Out Scan'
+                              : 'Check In Scan',
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
@@ -4488,7 +6002,7 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
                           ),
                         ),
                         const SizedBox(height: 48),
-                        
+
                         // Camera Preview Circle
                         Container(
                           width: 280,
@@ -4498,21 +6012,27 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
                             color: const Color(0xFFF1F5F9),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF0066FF).withValues(alpha: 0.15),
+                                color: const Color(
+                                  0xFF0066FF,
+                                ).withValues(alpha: 0.15),
                                 blurRadius: 40,
                                 spreadRadius: 10,
                               ),
                             ],
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 8,
-                            ),
+                            border: Border.all(color: Colors.white, width: 8),
                           ),
-                          child: _hasPermission && _cameraController != null && _cameraController!.value.isInitialized
+                          child:
+                              _hasPermission &&
+                                  _cameraController != null &&
+                                  _cameraController!.value.isInitialized
                               ? ClipOval(
                                   child: Transform.scale(
-                                    scale: _cameraController!.value.aspectRatio < 1 
-                                        ? 1 / _cameraController!.value.aspectRatio 
+                                    scale:
+                                        _cameraController!.value.aspectRatio < 1
+                                        ? 1 /
+                                              _cameraController!
+                                                  .value
+                                                  .aspectRatio
                                         : _cameraController!.value.aspectRatio,
                                     child: Center(
                                       child: CameraPreview(_cameraController!),
@@ -4520,20 +6040,29 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
                                   ),
                                 )
                               : const Center(
-                                  child: Icon(Icons.camera_alt_rounded, color: Color(0xFFCBD5E1), size: 64),
+                                  child: Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Color(0xFFCBD5E1),
+                                    size: 64,
+                                  ),
                                 ),
                         ),
-                        
+
                         if (!_hasPermission) ...[
                           const SizedBox(height: 32),
                           GestureDetector(
                             onTap: _requestPermission,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFEF2F2),
                                 borderRadius: BorderRadius.circular(30),
-                                border: Border.all(color: const Color(0xFFFECACA)),
+                                border: Border.all(
+                                  color: const Color(0xFFFECACA),
+                                ),
                               ),
                               child: const Text(
                                 'Tap to allow camera permission',
@@ -4547,38 +6076,55 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
                             ),
                           ),
                         ],
-          
+
                         if (_errorMessage.isNotEmpty) ...[
                           const SizedBox(height: 24),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEF2F2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               _errorMessage,
-                              style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600, fontSize: 14),
+                              style: const TextStyle(
+                                color: Color(0xFFEF4444),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
                         ],
-          
+
                         const Spacer(),
                         const SizedBox(height: 32),
-          
+
                         // Scan Now Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton.icon(
-                            onPressed: _hasPermission && !_isLoading ? _scanNow : null,
-                            icon: _isLoading 
-                              ? const SizedBox(
-                                  width: 24, height: 24, 
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
-                                )
-                              : const Icon(Icons.face_retouching_natural_rounded, size: 24, color: Colors.white),
+                            onPressed: _hasPermission && !_isLoading
+                                ? _scanNow
+                                : null,
+                            icon: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.face_retouching_natural_rounded,
+                                    size: 24,
+                                    color: Colors.white,
+                                  ),
                             label: Text(
                               _isLoading ? 'Scanning Face...' : 'Scan Now',
                               style: const TextStyle(
@@ -4592,7 +6138,9 @@ class _AttendanceScannerScreenState extends State<AttendanceScannerScreen> {
                               backgroundColor: const Color(0xFF0066FF),
                               disabledBackgroundColor: const Color(0xFF94A3B8),
                               elevation: 8,
-                              shadowColor: const Color(0xFF0066FF).withValues(alpha: 0.4),
+                              shadowColor: const Color(
+                                0xFF0066FF,
+                              ).withValues(alpha: 0.4),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -4642,7 +6190,11 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Server IP updated. Please restart the app for full effect.')),
+        const SnackBar(
+          content: Text(
+            'Server IP updated. Please restart the app for full effect.',
+          ),
+        ),
       );
     }
   }
@@ -4655,7 +6207,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Enter your computer\'s local IP address (e.g. 192.168.1.5 or 172.23.110.7) or 10.0.2.2 for Android Emulator.'),
+          const Text(
+            'Enter your computer\'s local IP address (e.g. 192.168.1.5 or 172.23.110.7) or 10.0.2.2 for Android Emulator.',
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _ipController,
@@ -4672,13 +6226,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _save,
-          child: const Text('Save'),
-        ),
+        ElevatedButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }
 }
-
-

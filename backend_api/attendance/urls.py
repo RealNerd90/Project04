@@ -50,5 +50,7 @@ urlpatterns = [
     path("api/mobile/analytics/", mobile_api.mobile_analytics, name="mobile-analytics"),
     path("api/mobile/checkin/", mobile_api.mobile_checkin, name="mobile-checkin"),
     path("api/mobile/checkout/", mobile_api.mobile_checkout, name="mobile-checkout"),
+    path("api/mobile/settings/", mobile_api.mobile_settings_get, name="mobile-settings-get"),
+    path("api/mobile/settings/update/", mobile_api.mobile_settings_update, name="mobile-settings-update"),
 ]
 
