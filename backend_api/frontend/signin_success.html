@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In Successful - AttendancePro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="{% static 'theme.js' %}" defer></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body class="bg-gray-light no-scroll">
+    <nav class="navbar navbar-border">
+        <div class="logo">
+            <i class="ph-fill ph-check-square-offset"></i>
+            <span>AttendancePro</span>
+        </div>
+    </nav>
+
+    <main class="success-wrapper">
+        <div class="success-card">
+            <div class="success-badge">
+                <div class="success-badge-inner">
+                    <i class="ph-fill ph-check-circle"></i>
+                </div>
+            </div>
+
+            <h1 class="success-title">Identification Successful!</h1>
+            <p class="success-subtitle">Welcome back! Your identity has been securely verified. We’re glad to have you with us today—your dashboard is being prepared, and your session is about to begin. Let's make today productive and successful!</p>
+
+            <div class="success-profile">
+                <div class="success-user">
+                    <p class="success-name">{{ name }}</p>
+                    <p class="success-id mobile-hide">ID: <span>{{ user_id }}</span></p>
+                    <p class="success-role">{{ account_role_label }} • {{ account_role_desc }}</p>
+                </div>
+            </div>
+
+            <div class="attendance-log mobile-hide">
+                <h2 class="attendance-log-title">Attendance Logged</h2>
+                <div class="attendance-row">
+                    <div class="attendance-label"><i class="ph-fill ph-calendar"></i> Date</div>
+                    <div class="attendance-value">{{ date }}</div>
+                </div>
+                <div class="attendance-row">
+                    <div class="attendance-label"><i class="ph-fill ph-clock"></i> Check-in Time</div>
+                    <div class="attendance-value">{{ time }}</div>
+                </div>
+            </div>
+
+            <div class="redirect-note">
+                Redirecting to dashboard in <span id="countdown">2</span> seconds...
+            </div>
+        </div>
+    </main>
+
+    {% include "_footer.html" %}
+
+    <script>
+        (function () {
+            const countdownEl = document.getElementById('countdown');
+            let seconds = 2;
+
+            const interval = setInterval(() => {
+                seconds -= 1;
+                if (countdownEl) countdownEl.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    window.location.href = '{% url "dashboard" %}';
+                }
+            }, 1000);
+        })();
+    </script>
+</body>
+
+</html>

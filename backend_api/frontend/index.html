@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Your Time Effectively - AttendancePro</title>
+    <meta name="description"
+        content="A modern attendance management system for organizations and schools to track productivity and streamline collaboration with ease.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="{% static 'theme.js' %}" defer></script>
+    <!-- Phosphor Icons for modern thin icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body class="home-fixed">
+    <nav class="navbar desktop-only">
+        <div class="logo">
+            <i class="ph-fill ph-check-square-offset"></i>
+            <span>AttendancePro</span>
+        </div>
+    </nav>
+
+    <main class="hero-section">
+        <div class="hero-content">
+            <!-- Mobile Only Hero Icon -->
+            <div class="mobile-only mobile-hero-icon">
+                <div class="icon-circle">
+                    <i class="ph-fill ph-user-focus"></i>
+                    <div class="icon-badge">
+                        <i class="ph-fill ph-shield-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pill-badge desktop-only">
+                <i class="ph-bold ph-lightning"></i> MODERN MANAGEMENT
+            </div>
+
+            <h1 class="hero-title">
+                Manage Your Time <span class="highlight-text">Effectively</span>
+            </h1>
+
+            <p class="hero-description">
+                <span class="desktop-only">A modern attendance management system for organizations and schools to track productivity and streamline collaboration with ease.</span>
+                <span class="mobile-only">Effortless check-ins with secure face recognition technology.</span>
+            </p>
+
+            <div class="hero-actions">
+                <a href="{% url 'signin' %}" class="btn btn-primary btn-large btn-mobile-rounded">
+                    <i class="ph-bold ph-sign-in mobile-only icon-btn-left"></i> Sign In
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-outline btn-large btn-mobile-rounded">
+                    <i class="ph-bold ph-user-plus mobile-only icon-btn-left"></i> <span class="desktop-only">Register</span><span class="mobile-only">Register Face</span>
+                </a>
+            </div>
+
+            <!-- Mobile Only Footer Links -->
+            <div class="mobile-only mobile-footer-extras">
+                <div class="security-note">
+                    <i class="ph-fill ph-shield-check"></i> Securely encrypted biometric data
+                </div>
+            </div>
+
+
+        </div>
+    </main>
+
+    {% include "_footer.html" %}
+</body>
+
+</html>

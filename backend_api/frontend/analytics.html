@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Analytics - AttendancePro</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'theme.js' %}" defer></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        :root {
+            --attendance-rate: {{ attendance_rate|default:0|floatformat:0 }}%;
+            --hours-pct: {{ hours_pct|default:0 }}%;
+            --leaves-pct: {{ leaves_pct|default:0 }}%;
+            --punctuality-score: {{ punctuality_score|default:0 }}%;
+            --efficiency-score: {{ efficiency|default:0 }}%;
+        }
+
+        /* Summary Dashboard Layout */
+        .summary-dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .monthly-summary-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .summary-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .summary-header .label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .monthly-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .monthly-table th {
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .monthly-table td {
+            padding: 14px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            border-bottom: 1px solid #f8fafc;
+        }
+
+        .monthly-table td.center { text-align: center; }
+        .monthly-table th.center { text-align: center; }
+
+        .text-present { color: #0A7DFF; }
+        .text-absent { color: #f43f5e; }
+        .text-late { color: #f59e0b; }
+
+        /* Insights Grid */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .insight-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: transform 0.2s;
+        }
+
+        .insight-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .insight-icon.blue { color: #0A7DFF; }
+        .insight-icon.cyan { color: #06b6d4; }
+
+        .insight-info { display: flex; flex-direction: column; gap: 2px; }
+        .insight-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .insight-value { font-size: 15px; font-weight: 700; color: #1e293b; }
+        .insight-meta { font-size: 11px; color: #64748b; }
+
+        /* Time Distribution Card */
+        .distribution-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stats-column-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            width: 100%;
+            margin-top: 24px;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+
+        .stat-item-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-circle-uniform {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-circle-uniform.shadow-light {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 4px solid white;
+        }
+
+        .bg-gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .bg-gradient-cyan { background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%); }
+        .bg-gradient-orange { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+
+        .stat-circle-uniform canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .stat-circle-inner-txt {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-circle-inner-txt .v-val {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+        
+        .stat-circle-inner-txt .v-val.text-white { color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .stat-circle-inner-txt .v-val small { font-size: 14px; font-weight: 700; margin-left: 2px; opacity: 0.9; }
+
+        .stat-circle-inner-txt .v-lbl {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+        .stat-circle-inner-txt .v-lbl.text-white-light { color: rgba(255,255,255,0.85); }
+
+        .stat-outer-lbl {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Distribution Legend Bottom */
+        .distribution-legend-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: auto;
+            padding-top: 24px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .legend-item-v { 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .legend-divider {
+            width: 1px;
+            height: 32px;
+            background: #f8fafc;
+        }
+
+        .legend-item-v .l-lbl { 
+            font-size: 10px; 
+            font-weight: 700; 
+            color: #64748b; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            margin-bottom: 6px; 
+        }
+
+        .legend-item-v .l-val { 
+            font-size: 20px; 
+            font-weight: 800; 
+        }
+
+        .legend-item-v .l-val.light-blue { color: #0ea5e9; }
+        .legend-item-v .l-val.blue { color: #0A7DFF; }
+        .legend-item-v .l-val.orange { color: #f59e0b; }
+
+        .year-select-dropdown {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+            background-size: 8px auto;
+            padding-right: 16px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-lighter">
+    <!-- Navbar -->
+    <nav class="navbar dashboard-navbar navbar-border flex-between">
+        <div class="logo">
+            <i class="ph-fill ph-check-square-offset text-primary"></i>
+            <span>AttendancePro</span>
+        </div>
+
+        <div class="nav-links-center">
+            <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+            <a href="{% url 'analytics' %}" class="nav-link active">Personal Analytics</a>
+            <a href="{% url 'settings' %}" class="nav-link">Settings</a>
+        </div>
+
+        <div class="nav-right">
+            <button class="icon-btn-rounded mx-2">
+                <i class="ph-fill ph-bell"></i>
+            </button>
+            <div class="profile-dropdown" data-profile-dropdown>
+                <button type="button" class="profile-avatar" data-profile-dropdown-trigger aria-haspopup="menu"
+                    aria-expanded="false">
+                    {% if profile_photo_url %}
+                    <img src="{{ profile_photo_url }}" alt="Profile" />
+                    {% else %}
+                    <img src="{% static 'default-avatar.png' %}" alt="Profile" class="default-avatar-img" />
+                    {% endif %}
+                </button>
+
+                <div class="profile-dropdown-menu" data-profile-dropdown-menu role="menu" aria-hidden="true">
+                    <div class="profile-dropdown-header">
+                        <div class="profile-dropdown-avatar">
+                            {% if profile_photo_url %}
+                            <img src="{{ profile_photo_url }}" alt="Profile" />
+                            {% else %}
+                            <img src="{% static 'default-avatar.png' %}" alt="Profile" class="default-avatar-img" />
+                            {% endif %}
+                        </div>
+                        <div class="profile-dropdown-meta">
+                            <div class="profile-dropdown-name">{{ display_name }}</div>
+                            <div class="profile-dropdown-role">AttendancePro</div>
+                        </div>
+                    </div>
+
+                    <div class="profile-dropdown-items">
+                        <a class="profile-dropdown-item" href="{% url 'profile' %}" role="menuitem">
+                            <i class="ph-bold ph-user"></i>
+                            <span>View Profile</span>
+                        </a>
+                        <div class="profile-dropdown-sep"></div>
+                        <button type="button" class="profile-dropdown-item danger" data-open-logout role="menuitem">
+                            <i class="ph-bold ph-sign-out"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+
+                    <div class="profile-dropdown-footer">
+                        <span class="profile-dropdown-footer-label">ACTIVE SESSION</span>
+                        <span class="profile-dropdown-status">
+                            <span class="profile-dropdown-dot" aria-hidden="true"></span>
+                            <span>Online</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="logout-confirm-overlay" id="logoutConfirm" aria-hidden="true">
+        <div class="logout-confirm-card" role="dialog" aria-modal="true" aria-label="Confirm Logout">
+            <div class="logout-confirm-icon">
+                <i class="ph-bold ph-sign-out"></i>
+            </div>
+            <h1 class="logout-confirm-title">Confirm Logout</h1>
+            <p class="logout-confirm-subtitle">
+                Are you sure you want to log out of your account? You will need to log back in to access your attendance
+                dashboard.
+            </p>
+
+            <form method="post" action="{% url 'logout' %}" class="logout-confirm-actions">
+                {% csrf_token %}
+                <button type="submit" class="btn logout-btn-danger w-full">Logout</button>
+                <button type="button" class="btn logout-btn-cancel w-full" data-close-logout>Cancel</button>
+            </form>
+
+            <div class="logout-confirm-foot">
+                <i class="ph-bold ph-shield-check"></i>
+                <span>Secure session management</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="analytics-wrapper py-8">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="analytics-header mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-dark mb-1">My Personal Attendance Analytics</h1>
+                    <p class="text-gray">Track your personal work habits, punctuality, and attendance trends.</p>
+                </div>
+            </div>
+
+
+
+            <!-- Summary Dashboard -->
+            <div class="summary-dashboard-grid">
+                <!-- Left: Monthly Summary & Insights -->
+                <div class="flex flex-col gap-6">
+                    <div class="monthly-summary-card">
+                        <div class="summary-header">
+                            <h3>Monthly Status Summary</h3>
+                            <select class="year-select-dropdown" name="year">
+                                <option value="{{ current_year }}">{{ current_year }}</option>
+                            </select>
+                        </div>
+                        <table class="monthly-table">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th class="center">Present</th>
+                                    <th class="center">Absent</th>
+                                    <th class="center">Late</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in monthly_summary %}
+                                <tr>
+                                    <td>{{ m.month }}</td>
+                                    <td class="center text-present">{{ m.present }}</td>
+                                    <td class="center text-absent">{{ m.absent }}</td>
+                                    <td class="center text-late">{{ m.late }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <div class="insights-grid">
+                            <div class="insight-card">
+                                <div class="insight-icon blue">
+                                    <i class="ph-bold ph-star"></i>
+                                </div>
+                                <div class="insight-info">
+                                    <span class="insight-label">Most Consistent Month</span>
+                                    <span class="insight-value">{{ most_consistent_month }}</span>
+                                    <span class="insight-meta">{{ most_consistent_rate }}% Attendance rate</span>
+                                </div>
+                            </div>
+                            <div class="insight-card">
+                                <div class="insight-icon cyan">
+                                    <i class="ph-bold ph-trend-up"></i>
+                                </div>
+                                <div class="insight-info">
+                                    <span class="insight-label">Longest Streak</span>
+                                    <span class="insight-value">{{ longest_streak }} Days</span>
+                                    <span class="insight-meta">Active since record start</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Time Distribution -->
+                <div class="distribution-card" 
+                     data-efficiency="{{ efficiency }}">
+                    <div class="summary-header w-full">
+                        <h3>Distribution Stats</h3>
+                    </div>
+                    
+                    <div class="stats-column-vertical">
+                        <!-- Stat 1: Efficiency -->
+                        <div class="stat-item-vertical">
+                            <div class="stat-circle-uniform">
+                                <canvas id="efficiencyChart"></canvas>
+                                <div class="stat-circle-inner-txt">
+                                     <span class="v-val">{{ efficiency }}%</span>
+                                     <span class="v-lbl">EFFICIENCY</span>
+                                </div>
+                            </div>
+                            <div class="stat-outer-lbl">SCORE OVERALL</div>
+                        </div>
+
+                        <!-- Stat 2: Check-in -->
+                        <div class="stat-item-vertical">
+                            <div class="stat-circle-uniform shadow-light bg-gradient-blue">
+                                <div class="stat-circle-inner-txt">
+                                     <span class="v-val text-white">{{ avg_checkin_str|default:"--:--" }}</span>
+                                     <span class="v-lbl text-white-light">CHECK-IN</span>
+                                </div>
+                            </div>
+                            <div class="stat-outer-lbl">AVG ARRIVAL</div>
+                        </div>
+
+                        <!-- Stat 3: Duration -->
+                        <div class="stat-item-vertical">
+                            <div class="stat-circle-uniform shadow-light bg-gradient-cyan">
+                                <div class="stat-circle-inner-txt">
+                                     <span class="v-val text-white">{{ avg_duration_str|default:"0.0" }}<small>h</small></span>
+                                     <span class="v-lbl text-white-light">DURATION</span>
+                                </div>
+                            </div>
+                            <div class="stat-outer-lbl">AVG DAILY HOURS</div>
+                        </div>
+                    </div>
+
+                    <div class="distribution-legend-bottom">
+                        <div class="legend-item-v">
+                            <span class="l-lbl">EARLY</span>
+                            <span class="l-val light-blue">{{ early_pct|default:"0" }}%</span>
+                        </div>
+                        <div class="legend-divider"></div>
+                        <div class="legend-item-v">
+                            <span class="l-lbl">ON TIME</span>
+                            <span class="l-val blue">{{ ontime_pct|default:"0" }}%</span>
+                        </div>
+                        <div class="legend-divider"></div>
+                        <div class="legend-item-v">
+                            <span class="l-lbl">LATE</span>
+                            <span class="l-val orange">{{ late_pct|default:"0" }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid mb-8">
+                <!-- Card 1: Attendance Rate -->
+                <div class="card p-6">
+                    <p class="text-sm text-gray mb-1">My Attendance Rate</p>
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <h2 class="text-3xl font-bold">{{ attendance_rate|default:0 }}%</h2>
+                        <span
+                            class="text-xs font-semibold {% if rate_diff >= 0 %}text-green{% else %}text-red{% endif %} flex items-center gap-1">
+                            <i
+                                class="ph-bold {% if rate_diff >= 0 %}ph-arrow-up-right{% else %}ph-arrow-down-right{% endif %}"></i>
+                            {{ rate_diff|floatformat:1 }}%
+                        </span>
+                    </div>
+                    <div class="progress-bar-bg h-1.5 rounded-full overflow-hidden">
+                        <div class="progress-bar-fill bg-primary h-full transition-all duration-700"
+                            style="width: var(--attendance-rate);"></div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Total Hours -->
+                <div class="card p-6">
+                    <p class="text-sm text-gray mb-1">Total Hours Worked</p>
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <h2 class="text-3xl font-bold">{{ total_hours }}h</h2>
+                        <span class="text-xs text-light">this period</span>
+                    </div>
+                    <div class="progress-bar-bg h-1.5 rounded-full overflow-hidden">
+                        <div class="progress-bar-fill bg-green h-full transition-all duration-700"
+                            style="width: var(--hours-pct);"></div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Sick Leaves -->
+                <div class="card p-6">
+                    <p class="text-sm text-gray mb-1">Leaves Taken</p>
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <h2 class="text-3xl font-bold">{{ leaves_taken }}</h2>
+                        <span class="text-xs text-light">days</span>
+                    </div>
+                    <div class="progress-bar-bg h-1.5 rounded-full overflow-hidden">
+                        <div class="progress-bar-fill bg-orange h-full transition-all duration-700"
+                            style="width: var(--leaves-pct);"></div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Punctuality Score -->
+                <div class="card p-6">
+                    <p class="text-sm text-gray mb-1">Punctuality Score</p>
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <h2 class="text-3xl font-bold">{{ punctuality_score }}/100</h2>
+                        <span class="text-xs font-semibold text-green flex items-center gap-1">
+                            <i class="ph-fill ph-star"></i> {% if punctuality_score > 90 %}Top 5%{% else %}Active{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress-bar-bg h-1.5 rounded-full overflow-hidden">
+                        <div class="progress-bar-fill bg-green h-full transition-all duration-700"
+                            style="width: var(--punctuality-score);"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Attendance Log Table -->
+            <div class="card p-0 mb-8 overflow-hidden">
+                <div class="p-6 border-b flex-between">
+                    <h3 class="card-title">Attendance Log</h3>
+                    <button class="btn btn-outline btn-xs gap-2">
+                        <i class="ph-bold ph-funnel"></i> Filter
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="analytics-table w-full text-left font-inter">
+                        <thead>
+                            <tr class="bg-gray-lighter border-b">
+                                <th class="px-6 py-4 text-xs font-semibold text-gray uppercase">Date</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray uppercase">Check-In</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray uppercase">Check-Out</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in attendance_records %}
+                            <tr class="border-b transition-colors hover:bg-gray-lighter">
+                                <td class="px-6 py-5 font-semibold text-sm">{{ record.date|date:"M d, Y" }}</td>
+                                <td class="px-6 py-5 text-sm">{{ record.time|time:"h:i A"|default:'--' }}</td>
+                                <td class="px-6 py-5 text-sm">{{ record.check_out_time|time:"h:i A"|default:'--' }}</td>
+                                <td class="px-6 py-5 text-sm">
+                                    <span
+                                        class="badge {% if record.status == 'present' %}badge-green{% else %}badge-red-light{% endif %}">
+                                        {{ record.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td class="px-6 py-5 text-sm" colspan="4">No attendance records found for this period.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include "_footer.html" %}
+
+    <script>
+        // Profile Dropdown
+        (function () {
+            const root = document.querySelector('[data-profile-dropdown]');
+            if (!root) return;
+            const trigger = root.querySelector('[data-profile-dropdown-trigger]');
+            const menu = root.querySelector('[data-profile-dropdown-menu]');
+            if (!trigger || !menu) return;
+
+            function setOpen(next) {
+                root.classList.toggle('open', next);
+                trigger.setAttribute('aria-expanded', next ? 'true' : 'false');
+                menu.setAttribute('aria-hidden', next ? 'false' : 'true');
+            }
+
+            function isOpen() {
+                return root.classList.contains('open');
+            }
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setOpen(!isOpen());
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!isOpen()) return;
+                if (!root.contains(e.target)) setOpen(false);
+            });
+        })();
+
+        // Logout Modal
+        (function () {
+            const overlay = document.getElementById('logoutConfirm');
+            if (!overlay) return;
+            const openBtn = document.querySelector('[data-open-logout]');
+            const closeBtn = overlay.querySelector('[data-close-logout]');
+            if (!openBtn || !closeBtn) return;
+
+            openBtn.addEventListener('click', () => overlay.classList.add('open'));
+            closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
+        })();
+
+
+        // Efficiency Chart (Doughnut)
+        (function() {
+            const card = document.querySelector('.distribution-card');
+            if (!card) return;
+            
+            const efficiency = parseFloat(card.dataset.efficiency) || 0;
+
+            const ctx = document.getElementById('efficiencyChart').getContext('2d');
+            const data = {
+                datasets: [{
+                    data: [efficiency, 100 - efficiency],
+                    backgroundColor: ['#0A7DFF', '#f1f5f9'],
+                    borderWidth: 0,
+                    cutout: '84%',
+                    borderRadius: 10
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

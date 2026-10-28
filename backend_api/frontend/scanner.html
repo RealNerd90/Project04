@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner - AttendancePro</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="{% static 'theme.js' %}" defer></script>
+    <script src="{% static 'permissions.js' %}"></script>
+    <style>
+        /* Mobile-First Scanner Overrides */
+        @media (max-width: 600px) {
+            .dashboard-navbar { display: none !important; }
+            .signin-footer { display: none !important; }
+            
+            body { 
+                background: #eef2f6 !important; 
+                padding: 0 !important;
+                padding-bottom: 80px !important; /* Space for bottom nav */
+                overflow-x: hidden !important;
+            }
+
+            .mobile-back-header {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 1.1rem 1.25rem !important;
+                background: white !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 100 !important;
+                border-bottom: 1px solid #f1f5f9 !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+            }
+
+            .header-title-centered {
+                position: absolute !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                font-weight: 600 !important;
+                font-size: 1.1rem !important;
+                color: #0f172a !important;
+                letter-spacing: -0.01em !important;
+            }
+
+            .back-btn-circle {
+                width: 44px !important;
+                height: 44px !important;
+                background: #f8fafc !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: #1e293b !important;
+                text-decoration: none !important;
+                font-size: 1.2rem !important;
+            }
+
+            .scanner-page {
+                padding: 1rem 1.5rem !important;
+                margin: 0 !important;
+                background: transparent !important;
+            }
+
+            .scanner-card {
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+
+            .scanner-title {
+                color: #1e293b !important;
+                font-size: 1.6rem !important;
+                font-weight: 900 !important;
+                margin-bottom: 0.5rem !important;
+                text-align: left !important;
+            }
+
+            .scanner-subtitle {
+                color: #64748b !important;
+                font-size: 0.95rem !important;
+                text-align: left !important;
+                margin-bottom: 1.5rem !important;
+            }
+
+            .scanner-circle-container {
+                width: 280px !important;
+                height: 280px !important;
+                margin: 0 auto 0.8rem !important;
+            }
+
+            .scanner-ring-outer {
+                width: 270px !important;
+                height: 270px !important;
+                border-color: rgba(0, 240, 255, 0.2) !important;
+                border-width: 4px !important;
+            }
+
+            .scanner-status {
+                background: white !important;
+                border-radius: 16px !important;
+                padding: 1rem 1.2rem !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
+                margin-bottom: 0.6rem !important;
+                border: 1px solid #f1f5f9 !important;
+            }
+
+            .scanner-actions {
+                display: flex !important;
+                gap: 1rem !important;
+            }
+
+            .scanner-actions .btn {
+                flex: 1 !important;
+                border-radius: 20px !important;
+                padding: 1.1rem 0 !important;
+                font-weight: 800 !important;
+                font-size: 1.05rem !important;
+                text-transform: none !important;
+            }
+
+            .scanner-actions .btn-primary {
+                background: #00f0ff !important;
+                color: #002d2d !important;
+                border: none !important;
+                box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4) !important;
+            }
+
+            .scanner-actions .btn-outline {
+                background: #eef2f6 !important;
+                color: #0A7DFF !important;
+                border: 2px solid #0A7DFF !important;
+                box-shadow: none !important;
+            }
+        }
+
+        /* Desktop Header Visibility */
+        .mobile-back-header { display: none; }
+    </style>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- MediaPipe Face Mesh dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="bg-gray-light">
+    <nav class="navbar dashboard-navbar navbar-border flex-between">
+        <div class="logo">
+            <i class="ph-fill ph-check-square-offset text-primary"></i>
+            <span>AttendancePro</span>
+        </div>
+
+        <div class="nav-right">
+            <a href="{% url 'settings' %}" class="nav-link">Settings</a>
+            <button class="icon-btn-rounded mx-2">
+                <i class="ph-fill ph-bell"></i>
+            </button>
+            <div class="profile-avatar">
+                {% if profile_photo_url %}
+                <img src="{{ profile_photo_url }}" alt="Profile" />
+                {% else %}
+                <img src="{% static 'default-avatar.png' %}" alt="Profile" class="default-avatar-img" />
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    
+    <header class="mobile-back-header">
+        <a href="{% url 'dashboard' %}" class="back-btn-circle">
+            <i class="ph ph-caret-left"></i>
+        </a>
+        <span class="header-title-centered" id="headerActionTitle">Checkin</span>
+        <div style="width: 44px;"></div> <!-- Spacer -->
+    </header>
+
+    <!-- Permission Overlay -->
+    <div id="permissionOverlay" class="permission-overlay" style="display:none;">
+        <div class="permission-card">
+            <div class="permission-icon">
+                <i class="ph-fill ph-lock-key"></i>
+            </div>
+            <h2 class="permission-title">Permissions Required</h2>
+            <p class="permission-text">AttendancePro needs access to your camera and location to verify your presence and complete the check-in process.</p>
+            <div id="insecureWarning" class="insecure-warning" style="display:none;">
+                <i class="ph-bold ph-warning-circle"></i>
+                <span>Warning: Browser security requires HTTPS for camera access on this device.</span>
+            </div>
+            <button id="grantPermissionsBtn" class="btn btn-primary w-full">Grant Permissions</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-text w-full mt-2">Go Back</a>
+        </div>
+    </div>
+
+    <style>
+        .permission-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .permission-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        .permission-icon {
+            width: 64px;
+            height: 64px;
+            background: #e0f2fe;
+            color: #0284c7;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 24px;
+        }
+        .permission-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .permission-text {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .insecure-warning {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+
+    <main class="scanner-page">
+        <div class="scanner-card">
+            <header class="scanner-header">
+                <h1 class="scanner-title" id="scannerTitle">Face Recognition Check-In</h1>
+                <p class="scanner-subtitle" id="scannerSubtitle">Position your face within the frame for secure
+                    biometric verification.</p>
+            </header>
+
+            <section class="scanner-center">
+                <div class="scanner-circle-container">
+                    <div class="scanner-ring-outer"></div>
+                    <div class="scanner-feed-circle">
+                        <video id="scannerVideo" autoplay playsinline muted></video>
+                        <canvas id="scannerOverlay" class="scanner-overlay" aria-hidden="true"></canvas>
+                    </div>
+                </div>
+
+                <div class="scanner-status" id="scannerStatus">
+                    <i class="ph-bold ph-video-camera animation-pulse"></i>
+                    <span id="scannerStatusText">Scanning... Please look into the camera</span>
+                </div>
+
+                <div class="scanner-actions">
+                    <button id="scannerCancel" class="btn btn-outline">
+                        <i class="ph-bold ph-x"></i> Cancel
+                    </button>
+                    <button id="scannerRetry" class="btn btn-primary">
+                        <i class="ph-bold ph-arrows-clockwise"></i> Retry
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+    
+    <!-- Duplicate Attendance Modal -->
+    <style>
+        .duplicate-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+        }
+        .duplicate-modal-overlay.open { display: flex; }
+        
+        .duplicate-modal-card {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 360px;
+            padding: 48px 32px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            animation: modalFadeInUp 0.3s ease-out forwards;
+        }
+
+        .duplicate-modal-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: #d97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);
+        }
+
+        .duplicate-modal-title {
+            font-size: 21px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+        }
+
+        .duplicate-modal-subtitle {
+            font-size: 15px;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            padding: 0;
+        }
+
+        @keyframes modalFadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <div class="duplicate-modal-overlay" id="duplicateAttendanceModal" aria-hidden="true">
+        <div class="duplicate-modal-card" role="dialog" aria-modal="true" aria-label="Attendance Already Recorded">
+            <div class="duplicate-modal-icon">
+                <i class="ph-fill ph-warning"></i>
+            </div>
+            <h1 class="duplicate-modal-title">Attendance Already Recorded</h1>
+            <p class="duplicate-modal-subtitle">
+                You have already checked in for today. Only one attendance record per day is permitted.
+            </p>
+            <button type="button" class="btn btn-primary w-full" id="dismissDuplicateBtn">Dismiss</button>
+        </div>
+    </div>
+
+    {% include "_footer.html" %}
+
+    <!-- Custom Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+        <style>
+            .mobile-bottom-nav {
+                display: none;
+            }
+            @media (max-width: 1024px) {
+                .mobile-bottom-nav {
+                    display: flex;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: #eef2f6;
+                    justify-content: space-around;
+                    align-items: center;
+                    padding: 0.7rem 0.5rem 0.5rem 0.5rem;
+                    box-shadow: 0 -4px 30px rgba(0,0,0,0.03);
+                    border-top-left-radius: 20px;
+                    border-top-right-radius: 20px;
+                    z-index: 1000;
+                    border: 1px solid #f8fafc;
+                }
+                .mobile-nav-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    text-decoration: none;
+                    flex: 1;
+                }
+                .mobile-nav-inner {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0.4rem 1rem;
+                    border-radius: 16px;
+                    transition: all 0.2s ease;
+                }
+                .mobile-nav-item.active .mobile-nav-inner {
+                    background: #f0fdfa; /* Extremely faint cyan background */
+                }
+                .mobile-nav-icon {
+                    font-size: 1.25rem;
+                    color: #64748b; /* Darker for better visibility */
+                    margin-bottom: 0.1rem;
+                }
+                .mobile-nav-label {
+                    font-size: 0.6rem;
+                    font-weight: 800;
+                    color: #64748b; /* Darker for better visibility */
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                .mobile-nav-item.active .mobile-nav-icon,
+                .mobile-nav-item.active .mobile-nav-label {
+                    color: #00bcd4; /* Dark Cyan matching standard */
+                }
+
+                /* Ensure bottom content doesn't get covered by the navbar margin */
+                body {
+                    padding-bottom: 80px !important;
+                }
+            }
+        </style>
+        
+        <a href="{% url 'dashboard' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-house mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Home</span>
+            </div>
+        </a>
+        <a href="{% url 'analytics' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-chart-line-up mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Analytics</span>
+            </div>
+        </a>
+        <a href="{% url 'settings' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-gear mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Settings</span>
+            </div>
+        </a>
+    </nav>
+
+    <script>
+        const duplicateModal = document.getElementById('duplicateAttendanceModal');
+        const dismissBtn = document.getElementById('dismissDuplicateBtn');
+        if (dismissBtn && duplicateModal) {
+            dismissBtn.addEventListener('click', () => {
+                duplicateModal.classList.remove('open');
+                window.location.href = '{% url "dashboard" %}';
+            });
+        }
+    </script>
+    
+    <script>
+        const video = document.getElementById('scannerVideo');
+        const overlay = document.getElementById('scannerOverlay');
+        const statusText = document.getElementById('scannerStatusText');
+        const scannerStatus = document.getElementById('scannerStatus');
+        const cancelBtn = document.getElementById('scannerCancel');
+        const retryBtn = document.getElementById('scannerRetry');
+
+        let scanLoopId = null;
+        let scanInProgress = false;
+        let lastSendAt = 0;
+        let stableCount = 0;
+        let lastCenter = null;
+        let lastBoxArea = null;
+        let gateOk = false;
+        let gateReason = "Align your face properly";
+        let frameNo = 0;
+        let isCameraActive = false;
+
+        // MediaPipe FaceMesh Setup
+        const faceMesh = new FaceMesh({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}`;
+        }});
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+        function applyCoverCropToLandmarks(landmarks) {
+            const iw = video.videoWidth || 1;
+            const ih = video.videoHeight || 1;
+            const a = iw / ih;
+
+            if (!Number.isFinite(a) || a <= 0) return landmarks;
+
+            if (a > 1) {
+                const off = (a - 1) / 2;
+                return landmarks.map((p) => ({ ...p, x: p.x * a - off }));
+            }
+            if (a < 1) {
+                const inv = 1 / a;
+                const off = (inv - 1) / 2;
+                return landmarks.map((p) => ({ ...p, y: p.y * inv - off }));
+            }
+            return landmarks;
+        }
+
+        function computeGate(landmarks) {
+            let minX = 1, minY = 1, maxX = 0, maxY = 0;
+            for (const p of landmarks) {
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
+            }
+            minX = clamp(minX, 0, 1); minY = clamp(minY, 0, 1);
+            maxX = clamp(maxX, 0, 1); maxY = clamp(maxY, 0, 1);
+
+            const w = Math.max(0.0001, (maxX - minX));
+            const h = Math.max(0.0001, (maxY - minY));
+            const area = w * h;
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+
+            const far = area < 0.06;
+            const near = area > 0.30;
+            const tolX = far ? 0.22 : near ? 0.14 : 0.18;
+            const tolY = far ? 0.24 : near ? 0.16 : 0.20;
+
+            const centered = Math.abs(cx - 0.5) <= tolX && Math.abs(cy - 0.5) <= tolY;
+            const goodSize = area >= 0.025 && area <= 0.55;
+            const inFrame = minX > 0.03 && minY > 0.03 && maxX < 0.97 && maxY < 0.97;
+
+            const centerDelta = lastCenter ? Math.hypot(cx - lastCenter.x, cy - lastCenter.y) : 0;
+            const areaDelta = lastBoxArea != null ? Math.abs(area - lastBoxArea) : 0;
+            const stableNow = centerDelta <= 0.018 && areaDelta <= 0.03;
+
+            lastCenter = { x: cx, y: cy };
+            lastBoxArea = area;
+
+            const ok = centered && goodSize && inFrame;
+            if (ok && stableNow) stableCount += 1;
+            else stableCount = 0;
+
+            let reason = "Hold still…";
+            if (!inFrame) reason = "Keep your whole face in frame";
+            else if (!goodSize) reason = area < 0.025 ? "Move closer to the camera" : "Move a bit away";
+            else if (!centered) reason = "Center your face in the circle";
+            else if (!stableNow) reason = "Hold still…";
+
+            return { ok: ok && stableCount >= 2, reason };
+        }
+
+        faceMesh.onResults((results) => {
+            const ctx = overlay.getContext('2d');
+            ctx.save();
+            
+            frameNo += 1;
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    const drawLm = applyCoverCropToLandmarks(landmarks);
+
+                    if (frameNo % 2 === 0) {
+                        drawConnectors(ctx, drawLm, FACEMESH_TESSELATION, {
+                            color: 'rgba(0, 0, 0, 0.85)',
+                            lineWidth: 1
+                        });
+                    }
+
+                    const gate = computeGate(landmarks);
+                    gateOk = gate.ok;
+                    gateReason = gate.reason;
+                    setStatus(gateOk ? (isCheckout ? "Face ready ✔ (Checking Out...)" : "Face ready ✔ (Checking In...)") : gateReason, gateOk ? "success" : "info");
+                }
+            } else {
+                gateOk = false;
+                stableCount = 0;
+                lastCenter = null;
+                lastBoxArea = null;
+                setStatus("Align your face properly", "info");
+            }
+            ctx.restore();
+        });
+
+        async function runMediaPipe() {
+            if (isCameraActive && video.readyState >= 2) {
+                await faceMesh.send({image: video});
+            }
+            if (isCameraActive) {
+                requestAnimationFrame(runMediaPipe);
+            }
+        }
+
+        function getCurrentLocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve({ lat: null, lon: null });
+                } else {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+                        (err) => resolve({ lat: null, lon: null }),
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                }
+            });
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        function setStatus(text, type = 'info') {
+            statusText.textContent = text;
+            if (type === 'error') {
+                scannerStatus.style.color = '#dc2626';
+            } else if (type === 'success') {
+                scannerStatus.style.color = '#16a34a';
+            } else {
+                scannerStatus.style.color = '#0b69ff';
+            }
+        }
+
+        function updateOverlaySize() {
+            const rect = video.getBoundingClientRect();
+            overlay.width = rect.width;
+            overlay.height = rect.height;
+            overlay.style.width = `${rect.width}px`;
+            overlay.style.height = `${rect.height}px`;
+        }
+
+        function clearOverlay() {
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 640 },
+                        frameRate: { ideal: 60, min: 30 }
+                    }
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    updateOverlaySize();
+                };
+            } catch (err) {
+                setStatus('Camera access denied. Please allow camera permission.', 'error');
+            }
+        }
+
+        const checkinEndpoint = '{% url "attendance-checkin-scan" %}';
+        const checkoutEndpoint = '{% url "attendance-checkout-scan" %}';
+
+        const params = new URLSearchParams(window.location.search);
+        const action = (params.get('action') || 'checkin').toLowerCase();
+        const isCheckout = action === 'checkout';
+
+        const titleEl = document.getElementById('scannerTitle');
+        const subtitleEl = document.getElementById('scannerSubtitle');
+        const headerActionTitleEl = document.getElementById('headerActionTitle');
+
+        if (titleEl) titleEl.textContent = isCheckout ? 'Face Recognition Check-Out' : 'Face Recognition Check-In';
+        if (headerActionTitleEl) headerActionTitleEl.textContent = isCheckout ? 'Checkout' : 'Checkin';
+        if (subtitleEl) subtitleEl.textContent = isCheckout
+            ? 'Look at the camera to securely check out.'
+            : 'Position your face within the frame for secure biometric verification.';
+
+        async function captureAndSend() {
+            if (!video.srcObject) return;
+            if (!gateOk) return;
+
+            const now = Date.now();
+            if (now - lastSendAt < 600) return;
+            lastSendAt = now;
+
+            if (scanInProgress) return;
+            scanInProgress = true;
+
+            setStatus('Fetching secure location...', 'info');
+            const loc = await getCurrentLocation();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+            try {
+                const endpoint = isCheckout ? checkoutEndpoint : checkinEndpoint;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ image: dataUrl, lat: loc.lat, lon: loc.lon }),
+                });
+
+                const result = await response.json();
+                
+                // --- NEW LOGIC: Duplicate check-in blocker ---
+                if (result.already_checked_in) {
+                    if (scanLoopId) clearInterval(scanLoopId);
+                    scanLoopId = null;
+                    setStatus('Attendance already recorded.', 'error');
+                    
+                    const modal = document.getElementById('duplicateAttendanceModal');
+                    if (modal) modal.classList.add('open');
+                    return;
+                }
+
+                if (result.success) {
+                    setStatus(
+                        isCheckout
+                            ? `Checked out: ${result.name}. Redirecting...`
+                            : `Checked in: ${result.name}. Redirecting...`,
+                        'success'
+                    );
+                    if (scanLoopId) clearInterval(scanLoopId);
+                    scanLoopId = null;
+
+                    setTimeout(() => {
+                        const timestamp = result.timestamp ? new Date(result.timestamp) : new Date();
+                        const timezone = '{{ system_settings.timezone|default:"Asia/Kolkata" }}';
+                        const dateOptions = { timeZone: timezone, year: 'numeric', month: 'long', day: 'numeric' };
+                        const timeOptions = { timeZone: timezone, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                        
+                        const date = timestamp.toLocaleDateString('en-US', dateOptions);
+                        const time = timestamp.toLocaleTimeString('en-US', timeOptions);
+                        const params = new URLSearchParams({
+                            name: result.name || '',
+                            action: isCheckout ? 'checkout' : 'checkin',
+                            date,
+                            time,
+                        });
+                        window.location.href = '{% url "attendance-success" %}?' + params.toString();
+                    }, 650);
+                    return;
+                }
+
+                if (!result.success && result.message) {
+                    setStatus(result.message, 'error');
+                }
+            } catch (err) {
+                setStatus('Error communicating with server. Please try again.', 'error');
+            } finally {
+                scanInProgress = false;
+            }
+        }
+
+        function beginScan() {
+            if (scanLoopId) return;
+            isCameraActive = true;
+            setStatus('Scanning... Please look directly into the camera', 'info');
+            scanLoopId = setInterval(captureAndSend, 150);
+            runMediaPipe();
+        }
+
+        function stopScan() {
+            if (!scanLoopId) return;
+            isCameraActive = false;
+            clearInterval(scanLoopId);
+            scanLoopId = null;
+            setStatus('Scan paused. Press retry to continue.', 'error');
+            clearOverlay();
+        }
+
+        cancelBtn.addEventListener('click', () => {
+            stopScan();
+            window.location.href = '{% url "dashboard" %}';
+        });
+
+        retryBtn.addEventListener('click', () => {
+            beginScan();
+        });
+
+        /* ---------------- SESSION TIMEOUT ---------------- */
+        const sessionTimeoutSeconds = {{ session_timeout_seconds|default:1800 }};
+        let scannerTimeoutId = setTimeout(() => {
+            stopScan();
+            setStatus("Scan session timed out.", "error");
+            setTimeout(() => {
+                window.location.href = '{% url "welcome" %}';
+            }, 2000);
+        }, sessionTimeoutSeconds * 1000);
+
+        // Reset timer on user interaction (optional, but good for retries)
+        document.addEventListener('click', () => {
+            clearTimeout(scannerTimeoutId);
+            scannerTimeoutId = setTimeout(() => {
+                stopScan();
+                setStatus("Scan session timed out.", "error");
+                setTimeout(() => {
+                    window.location.href = '{% url "welcome" %}';
+                }, 2000);
+            }, sessionTimeoutSeconds * 1000);
+        });
+
+        window.addEventListener('resize', updateOverlaySize);
+
+        // Improved Startup Logic with Permission Check
+        async function initializeScanner() {
+            const isSecure = PermissionsManager.checkSecureContext();
+            if (!isSecure) {
+                document.getElementById('permissionOverlay').style.display = 'flex';
+                document.getElementById('insecureWarning').style.display = 'flex';
+            }
+
+            // Check if we already have permissions (modern browsers might allow checking without prompt)
+            try {
+                const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+                const geoPermission = await navigator.permissions.query({ name: 'geolocation' });
+
+                if (cameraPermission.state === 'granted' && geoPermission.state === 'granted') {
+                    startCamera().then(beginScan);
+                } else {
+                    document.getElementById('permissionOverlay').style.display = 'flex';
+                }
+            } catch (e) {
+                // Some browsers don't support querying camera/geo via Permissions API
+                // In that case, we show the overlay to be safe and trigger via click
+                document.getElementById('permissionOverlay').style.display = 'flex';
+            }
+        }
+
+        document.getElementById('grantPermissionsBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('grantPermissionsBtn');
+            btn.disabled = true;
+            btn.textContent = 'Requesting...';
+
+            const results = await PermissionsManager.requestAll();
+            
+            if (results.camera === 'granted' && results.location === 'granted') {
+                document.getElementById('permissionOverlay').style.display = 'none';
+                startCamera().then(beginScan);
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Grant Permissions';
+                
+                let errorMsg = 'Permissions are required to proceed.';
+                if (results.camera !== 'granted' && results.location === 'granted') errorMsg = 'Camera permission is required.';
+                if (results.camera === 'granted' && results.location !== 'granted') errorMsg = 'Location permission is required. Please check your browser settings.';
+                if (results.camera !== 'granted' && results.location !== 'granted') errorMsg = 'Both Camera and Location permissions are required.';
+                
+                setStatus(errorMsg, 'error');
+            }
+        });
+
+        initializeScanner();
+    </script>
+
+    <!-- Custom Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+        <style>
+            .mobile-bottom-nav {
+                display: none;
+            }
+            @media (max-width: 1024px) {
+                .mobile-bottom-nav {
+                    display: flex;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: #eef2f6;
+                    justify-content: space-around;
+                    align-items: center;
+                    padding: 0.7rem 0.5rem 0.5rem 0.5rem;
+                    box-shadow: 0 -4px 30px rgba(0,0,0,0.03);
+                    border-top-left-radius: 20px;
+                    border-top-right-radius: 20px;
+                    z-index: 1000;
+                    border: 1px solid #f8fafc;
+                }
+                .mobile-nav-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    text-decoration: none;
+                    flex: 1;
+                }
+                .mobile-nav-inner {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0.4rem 1rem;
+                    border-radius: 16px;
+                    transition: all 0.2s ease;
+                }
+                .mobile-nav-item.active .mobile-nav-inner {
+                    background: #f0fdfa; /* Extremely faint cyan background */
+                }
+                .mobile-nav-icon {
+                    font-size: 1.25rem;
+                    color: #64748b; /* Darker for better visibility */
+                    margin-bottom: 0.1rem;
+                }
+                .mobile-nav-label {
+                    font-size: 0.6rem;
+                    font-weight: 800;
+                    color: #64748b; /* Darker for better visibility */
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                .mobile-nav-item.active .mobile-nav-icon,
+                .mobile-nav-item.active .mobile-nav-label {
+                    color: #00bcd4; /* Dark Cyan matching standard */
+                }
+
+                /* Ensure bottom content doesn't get covered by the navbar margin */
+                body {
+                    padding-bottom: 80px !important;
+                }
+            }
+        </style>
+        
+        <a href="{% url 'dashboard' %}" class="mobile-nav-item active">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-house mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Home</span>
+            </div>
+        </a>
+        <a href="{% url 'analytics' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-chart-line-up mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Analytics</span>
+            </div>
+        </a>
+        <a href="{% url 'settings' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-gear mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Settings</span>
+            </div>
+        </a>
+    </nav>
+</body>
+
+</html>

@@ -1,0 +1,123 @@
+{% load static %}
+<footer class="signin-footer">
+  <p class="copyright">© 2024 AttendancePro Management System. All rights reserved.</p>
+</footer>
+
+{% if system_settings %}
+<script>
+(function() {
+    // Initial state from Django template
+    let reminderTimeStr = "{{ system_settings.reminder_time|time:'H:i' }}";
+    let enableSound = {{ system_settings.enable_reminder_sound|yesno:"true,false" }};
+    
+    // Helpers
+    const getTodayKey = () => new Date().toISOString().split('T')[0];
+    let serverOffset = 0; // ms difference between server and browser
+    
+    // Fetch settings and sync time from API
+    async function syncSettings() {
+        try {
+            const response = await fetch('/api/settings/');
+            if (response.ok) {
+                const data = await response.json();
+                reminderTimeStr = data.reminder_time;
+                enableSound = data.enable_reminder_sound;
+                
+                if (data.server_time && data.server_date) {
+                    const serverTime = new Date(data.server_date + 'T' + data.server_time);
+                    const browserTime = new Date();
+                    serverOffset = serverTime.getTime() - browserTime.getTime();
+                }
+            }
+        } catch (e) {
+            console.error('Reminder sync failed:', e);
+        }
+    }
+
+    function triggerReminder() {
+        const today = getTodayKey();
+        const lastNotified = localStorage.getItem('lastAttendanceReminderDate');
+        
+        // Final guard to ensure one reminder per day per browser
+        if (lastNotified === today) return;
+        localStorage.setItem('lastAttendanceReminderDate', today);
+        
+        // 1. Play Sound
+        if (enableSound) {
+            const audio = new Audio("{% static 'notification.wav' %}");
+            audio.play().catch(e => console.log('Audio blocked by browser policy. Interaction needed.'));
+        }
+        
+        // 2. Browser Notification
+        if (window.Notification && Notification.permission === 'granted') {
+            new Notification('Attendance Portal', {
+                body: 'Scheduled attendance check-in time has arrived.',
+                icon: '{% static "default-avatar.png" %}',
+                silent: true // We handle our own sound
+            });
+        }
+        
+        // 3. UI Toast
+        showToast('Reminder: It is time for your attendance check-in/out!');
+    }
+
+    function showToast(message) {
+        const toastStack = document.querySelector('.toast-stack');
+        if (toastStack) {
+            const toast = document.createElement('div');
+            toast.className = 'toast success';
+            toast.innerHTML = `<i class="ph-fill ph-bell"></i> ${message}`;
+            toastStack.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 8000);
+        } else {
+            // Fallback for pages without toast-stack
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1d6ff3; color:white; padding:16px 24px; border-radius:12px; z-index:99999; box-shadow:0 10px 30px rgba(0,0,0,0.15); font-weight:600; font-size:14px; animation: slideDown 0.4s ease;';
+            div.innerHTML = `<i class="ph-fill ph-bell" style="margin-right:8px"></i> ${message}`;
+            document.body.appendChild(div);
+            setTimeout(() => {
+                div.style.opacity = '0';
+                div.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => div.remove(), 500);
+            }, 8000);
+        }
+    }
+
+    function tick() {
+        if (!reminderTimeStr) return;
+
+        // Use server-adjusted time for comparison
+        const now = new Date();
+        const adjustedNow = new Date(now.getTime() + serverOffset);
+        
+        const currentTimeStr = `${String(adjustedNow.getHours()).padStart(2, '0')}:${String(adjustedNow.getMinutes()).padStart(2, '0')}`;
+        
+        if (currentTimeStr === reminderTimeStr) {
+            triggerReminder();
+        }
+    }
+
+    // High precision tick (1s) to catch the exact minute
+    setInterval(tick, 1000);
+    
+    // Background sync (1m) to pick up admin changes and resync time
+    setInterval(syncSettings, 60000);
+
+    // Prompt for notification permission on first interaction
+    document.addEventListener('click', function requestPerms() {
+        if (window.Notification && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        // Remove listener after first click to avoid overhead
+        document.removeEventListener('click', requestPerms);
+    }, { once: true });
+
+    // Initial check
+    syncSettings();
+    tick();
+})();
+</script>
+{% endif %}

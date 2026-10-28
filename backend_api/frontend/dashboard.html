@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AttendancePortal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="{% static 'theme.js' %}" defer></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Mobile Dashboard Overrides -->
+    <style>
+        @media (max-width: 600px) {
+            /* Keep Navbar on one single line */
+            .dashboard-navbar {
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                padding: 1.25rem 1.25rem !important; /* Increased padding */
+                flex-wrap: nowrap !important;
+            }
+            
+            /* Hide desktop links completely on mobile to prevent wrapping */
+            .dashboard-navbar .nav-links-center {
+                display: none !important;
+            }
+
+            /* Increase Logo sizing perfectly to fit */
+            .dashboard-navbar .logo {
+                font-size: 1.3rem !important;
+                gap: 0.5rem !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+            }
+            .dashboard-navbar .logo i {
+                font-size: 1.5rem !important;
+            }
+            
+            /* Squeeze the right action icons */
+            .dashboard-navbar .nav-right {
+                display: flex !important;
+                align-items: center !important;
+                gap: 0.75rem !important;
+                flex-shrink: 0 !important;
+            }
+            
+            /* Increase Bell and Avatar dimensions */
+            .dashboard-navbar .icon-btn-rounded {
+                width: 38px !important;
+                height: 38px !important;
+                font-size: 1.3rem !important;
+                margin: 0 !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .dashboard-navbar .profile-avatar {
+                width: 38px !important;
+                height: 38px !important;
+            }
+
+            /* Fix entire layout from pushing to the right bounding */
+            body, html {
+                overflow-x: hidden !important;
+            }
+            .dashboard-wrapper {
+                width: 100vw !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+            }
+            .signin-footer {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-light">
+    <nav class="navbar dashboard-navbar navbar-border flex-between">
+        <div class="logo">
+            <i class="ph-fill ph-check-square-offset text-primary"></i>
+            <span>AttendancePro</span>
+        </div>
+
+        <div class="nav-links-center">
+            <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
+            <a href="{% url 'analytics' %}" class="nav-link">Personal Analytics</a>
+            <a href="{% url 'settings' %}" class="nav-link">Settings</a>
+        </div>
+
+        <div class="nav-right">
+            <button class="icon-btn-rounded mx-2">
+                <i class="ph-fill ph-bell"></i>
+            </button>
+            <div class="profile-dropdown" data-profile-dropdown>
+                <button type="button" class="profile-avatar" data-profile-dropdown-trigger aria-haspopup="menu" aria-expanded="false">
+                    {% if profile_photo_url %}
+                        <img src="{{ profile_photo_url }}" alt="Profile" />
+                    {% else %}
+                        <img src="{% static 'default-avatar.png' %}" alt="Profile" class="default-avatar-img" />
+                    {% endif %}
+                </button>
+
+                <div class="profile-dropdown-menu" data-profile-dropdown-menu role="menu" aria-hidden="true">
+                    <div class="profile-dropdown-header">
+                        <div class="profile-dropdown-avatar">
+                            {% if profile_photo_url %}
+                                <img src="{{ profile_photo_url }}" alt="Profile" />
+                            {% else %}
+                                <img src="{% static 'default-avatar.png' %}" alt="Profile" class="default-avatar-img" />
+                            {% endif %}
+                        </div>
+                        <div class="profile-dropdown-meta">
+                            <div class="profile-dropdown-name">{{ display_name }}</div>
+                            <div class="profile-dropdown-role">AttendancePro</div>
+                        </div>
+                    </div>
+
+                    <div class="profile-dropdown-items">
+                        <a class="profile-dropdown-item" href="{% url 'profile' %}" role="menuitem">
+                            <i class="ph-bold ph-user"></i>
+                            <span>View Profile</span>
+                        </a>
+                        <div class="profile-dropdown-sep"></div>
+                        <button type="button" class="profile-dropdown-item danger" data-open-logout role="menuitem">
+                            <i class="ph-bold ph-sign-out"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+
+                    <div class="profile-dropdown-footer">
+                        <span class="profile-dropdown-footer-label">ACTIVE SESSION</span>
+                        <span class="profile-dropdown-status">
+                            <span class="profile-dropdown-dot" aria-hidden="true"></span>
+                            <span>Online</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="logout-confirm-overlay" id="logoutConfirm" aria-hidden="true">
+        <div class="logout-confirm-card" role="dialog" aria-modal="true" aria-label="Confirm Logout">
+            <div class="logout-confirm-icon">
+                <i class="ph-bold ph-sign-out"></i>
+            </div>
+            <h1 class="logout-confirm-title">Confirm Logout</h1>
+            <p class="logout-confirm-subtitle">
+                Are you sure you want to log out of your account? You will need to log back in to access your attendance dashboard.
+            </p>
+
+            <form method="post" action="{% url 'logout' %}" class="logout-confirm-actions">
+                {% csrf_token %}
+                <button type="submit" class="btn logout-btn-danger w-full">Logout</button>
+                <button type="button" class="btn logout-btn-cancel w-full" data-close-logout>Cancel</button>
+            </form>
+
+            <div class="logout-confirm-foot">
+                <i class="ph-bold ph-shield-check"></i>
+                <span>Secure session management</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="dashboard-wrapper">
+        <div class="container dashboard-grid">
+
+            <!-- Left Column: Main Actions -->
+            <div class="col-main">
+                <!-- Mobile-Only Cyan Theme Transformation -->
+                <style>
+                    @media (max-width: 600px) {
+                        body { background: #eef2f6 !important; }
+                        .dashboard-navbar {
+                            background: #eef2f6 !important;
+                            border-bottom: none !important;
+                            padding-top: 1rem !important;
+                        }
+                        
+                        /* Welcome Overrides */
+                        .welcome-header { margin-bottom: 1.25rem !important; }
+                        .welcome-header h1 {
+                            font-size: 2.1rem !important;
+                            font-weight: 800 !important;
+                            color: #1e293b !important;
+                            margin-bottom: 0.2rem !important;
+                        }
+                        .welcome-header p {
+                            font-size: 1.15rem !important;
+                            color: #64748b !important;
+                            font-weight: 500 !important;
+                        }
+
+                        /* Time Card Overrides */
+                        .card.time-card {
+                            background: white !important;
+                            border-radius: 36px !important;
+                            padding: 1.75rem 1.25rem !important;
+                            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03) !important;
+                            text-align: center !important;
+                            margin-bottom: 1.25rem !important;
+                            border: none !important;
+                        }
+                        .section-label-light {
+                            font-size: 0.7rem !important;
+                            font-weight: 800 !important;
+                            color: #94a3b8 !important;
+                            letter-spacing: 0.15em !important;
+                            margin-bottom: 1.25rem !important;
+                        }
+                        .time-display-container {
+                            justify-content: center !important;
+                            gap: 0.5rem !important;
+                            margin-bottom: 1.25rem !important;
+                        }
+                        .time-block {
+                            background: transparent !important;
+                            font-size: 3rem !important;
+                            font-weight: 900 !important;
+                            color: #1e293b !important;
+                            padding: 0 !important;
+                            min-width: auto !important;
+                        }
+                        .time-block.blue-accent-bg { color: #008080 !important; } /* Dark cyan */
+                        .time-label {
+                            font-size: 0.65rem !important;
+                            font-weight: 700 !important;
+                            color: #94a3b8 !important;
+                            margin-top: 0.5rem !important;
+                        }
+                        .time-colon {
+                            color: #cbd5e1 !important;
+                            margin-top: 0.7rem !important;
+                        }
+                        .date-text {
+                            font-size: 0.9rem !important;
+                            font-weight: 600 !important;
+                            color: #64748b !important;
+                        }
+
+                        /* Action Button Overrides */
+                        .action-buttons-row { 
+                            gap: 1rem !important; 
+                            margin-bottom: 2.25rem !important; /* Added gap to Recent Logs */
+                        }
+                        .action-buttons-row .btn {
+                            background: #00f0ff !important;
+                            color: #002d2d !important;
+                            font-weight: 800 !important;
+                            font-size: 1.05rem !important;
+                            border-radius: 20px !important;
+                            padding: 1.1rem 0 !important;
+                            border: none !important;
+                            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4) !important;
+                        }
+                        .action-buttons-row .btn i { display: none !important; } /* Hide icons for cleaner pill look on mobile */
+                        .action-buttons-row .btn-outline {
+                            /* For checkout if disabled or enabled */
+                            background: #eef2f6 !important; /* Lighter/Transparent feel */
+                            color: #0A7DFF !important;
+                            border: 2px solid #0A7DFF !important; /* Requested Blue Border */
+                            box-shadow: none !important;
+                        }
+                        .action-buttons-row .btn:disabled {
+                            background: #f1f5f9 !important;
+                            color: #94a3b8 !important;
+                            box-shadow: none !important;
+                        }
+
+                        /* Activity List Overrides (Pill boxes) */
+                        .desktop-recent-activity { display: none !important; }
+                        .mobile-only-cyan-logs { display: block !important; }
+
+                        .cyan-logs-header {
+                            display: flex !important;
+                            justify-content: space-between !important;
+                            align-items: center !important;
+                            margin-bottom: 1rem !important;
+                        }
+                        .cyan-logs-title {
+                            font-size: 1.15rem !important;
+                            font-weight: 900 !important;
+                            color: #1e293b !important;
+                        }
+                        .cyan-logs-view-all {
+                            font-size: 0.7rem !important;
+                            font-weight: 800 !important;
+                            color: #008080 !important;
+                            letter-spacing: 0.05em !important;
+                            text-transform: uppercase !important;
+                        }
+
+                        .cyan-log-item {
+                            background: white !important;
+                            border-radius: 16px !important;
+                            padding: 1rem 1.15rem !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            margin-bottom: 0.75rem !important;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.015) !important;
+                            border: 1px solid #f8fafc !important;
+                        }
+                        .cyan-log-icon {
+                            width: 42px !important;
+                            height: 42px !important;
+                            border-radius: 50% !important;
+                            background: #e8fbff !important;
+                            color: #00bcd4 !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            font-size: 1.25rem !important;
+                            margin-right: 1.25rem !important;
+                            flex-shrink: 0 !important;
+                        }
+                        .cyan-log-icon.out { background: #f1f5f9 !important; color: #94a3b8 !important; }
+                        .cyan-log-meta { flex-grow: 1 !important; }
+                        .cyan-log-kind {
+                            font-weight: 800 !important;
+                            color: #1e293b !important;
+                            font-size: 0.95rem !important;
+                            margin-bottom: 0.15rem !important;
+                        }
+                        .cyan-log-time {
+                            font-size: 0.8rem !important;
+                            color: #64748b !important;
+                            font-weight: 500 !important;
+                        }
+                        .cyan-log-tag {
+                            background: #e0fbea !important; /* Neutral light cyan/greenish background */
+                            color: #00b368 !important;
+                            font-size: 0.75rem !important; /* Slightly larger for time */
+                            font-weight: 900 !important;
+                            padding: 0.4rem 0.75rem !important;
+                            border-radius: 12px !important;
+                            white-space: nowrap !important;
+                        }
+                        .separator-light { display: none !important; }
+                    }
+
+                    /* Desktop Visibility */
+                    .mobile-only-cyan-logs { display: none; }
+                </style>
+
+                <div class="welcome-header">
+                    <h1>Welcome back, {{ display_name }}</h1>
+                    <p>It's a productive Monday! Check in to start your session.</p>
+                </div>
+
+                <!-- Clock Card -->
+                <div class="card time-card">
+                    <p class="section-label-light">CURRENT LOCAL TIME</p>
+
+                    <div class="time-display-container">
+                        <div class="time-block-group">
+                            <div class="time-block blue-light-bg" id="clock-hours">09</div>
+                            <span class="time-label">HOURS</span>
+                        </div>
+                        <span class="time-colon">:</span>
+                        <div class="time-block-group">
+                            <div class="time-block gray-light-bg" id="clock-minutes">41</div>
+                            <span class="time-label">MINUTES</span>
+                        </div>
+                        <span class="time-colon">:</span>
+                        <div class="time-block-group">
+                            <div class="time-block blue-accent-bg text-primary" id="clock-seconds">05</div>
+                            <span class="time-label">SECONDS</span>
+                        </div>
+                    </div>
+
+                    <p class="date-text" id="clock-date">Monday, October 23rd, 2023</p>
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="action-buttons-row">
+                    {% if already_checked_in_today %}
+                    <button type="button" class="btn btn-primary btn-xl flex-1 justify-center gap-2" id="duplicateCheckinBtn">
+                        <i class="ph-bold ph-sign-in"></i> Check In
+                    </button>
+                    {% else %}
+                    <a href="{% url 'scanner' %}?action=checkin" class="btn btn-primary btn-xl flex-1 justify-center gap-2">
+                        <i class="ph-bold ph-sign-in"></i> Check In
+                    </a>
+                    {% endif %}
+                    {% if can_checkout %}
+                    <a href="{% url 'scanner' %}?action=checkout" class="btn btn-outline btn-xl flex-1 justify-center gap-2">
+                        <i class="ph-bold ph-sign-out"></i> Check Out
+                    </a>
+                    {% else %}
+                    <button type="button" class="btn btn-outline btn-xl flex-1 justify-center gap-2" title="Check in first to enable checkout" disabled>
+                        <i class="ph-bold ph-sign-out"></i> Check Out
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Recent Activity Section (Dual Track) -->
+                <div class="desktop-recent-activity">
+                    <div class="card mt-4">
+                        <div class="card-header flex-between">
+                            <h2 class="card-title">Recent Activity</h2>
+                            <a href="{% url 'analytics' %}" class="link-primary text-sm font-medium">View All</a>
+                        </div>
+
+                        <div class="activity-list">
+                            {% for item in recent_activity %}
+                            <div class="activity-item py-4">
+                                <div class="activity-icon {% if item.kind == 'checkin' %}bg-green-light text-green{% else %}bg-red-light text-red{% endif %}">
+                                    {% if item.kind == 'checkin' %}
+                                    <i class="ph-bold ph-sign-in"></i>
+                                    {% else %}
+                                    <i class="ph-bold ph-sign-out"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="activity-details flex-1">
+                                    <p class="activity-title">{{ item.title }}</p>
+                                    <p class="activity-subtitle">{{ item.date_label }}</p>
+                                </div>
+                                <div class="activity-time text-right">
+                                    <p class="activity-title">{{ item.time_label }}</p>
+                                    <p class="activity-subtitle">{{ item.meta }}</p>
+                                </div>
+                            </div>
+                            {% if not forloop.last %}
+                            <hr class="separator-light">
+                            {% endif %}
+                            {% empty %}
+                            <div class="activity-item py-4">
+                                <div class="activity-details flex-1">
+                                    <p class="activity-title">No recent activity</p>
+                                    <p class="activity-subtitle">Check in to start tracking attendance.</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Only Cyan Logs (Image 2 Style) -->
+                <div class="mobile-only-cyan-logs">
+                    <div class="cyan-logs-header">
+                        <div class="cyan-logs-title">Recent Logs</div>
+                        <a href="{% url 'analytics' %}" class="cyan-logs-view-all">VIEW ALL</a>
+                    </div>
+                    <div class="cyan-logs-list">
+                        {% for item in recent_activity %}
+                            <div class="cyan-log-item">
+                                <div class="cyan-log-icon {% if item.kind != 'checkin' %}out{% endif %}">
+                                    <i class="ph-bold {% if item.kind == 'checkin' %}ph-sign-in{% else %}ph-sign-out{% endif %}"></i>
+                                </div>
+                                <div class="cyan-log-meta">
+                                    <div class="cyan-log-kind">{% if item.kind == 'checkin' %}Checked In{% else %}Checked Out{% endif %}</div>
+                                    <div class="cyan-log-time">{{ item.date_label }}</div>
+                                </div>
+                                <div class="cyan-log-tag">
+                                    {{ item.time_label }}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="cyan-log-item" style="padding: 1.5rem; justify-content: center; text-align: center;">
+                                <div class="cyan-log-meta">
+                                    <div class="cyan-log-kind">No logs yet</div>
+                                    <div class="cyan-log-time">Check in to start tracking.</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div> <!-- End Left Column -->
+
+            <!-- Right Column: Sidebar Actions -->
+            <div class="col-sidebar">
+
+                <!-- Weekly Objective Card -->
+                <div class="card bg-gradient-primary text-white p-6">
+                    <div class="flex-between mb-2">
+                        <p class="text-xs uppercase font-semibold letter-spacing-1 opacity-80">THIS WEEK</p>
+                        <i class="ph-fill ph-chart-bar text-xl opacity-80"></i>
+                    </div>
+                    <h2 class="text-4xl font-bold mb-6">{{ weekly_hours_text }}</h2>
+
+                    <div class="flex-between mb-2">
+                        <p class="text-xs font-semibold letter-spacing-1">GOAL PROGRESS</p>
+                        <p class="text-sm font-bold">{{ weekly_progress_pct }}%</p>
+                    </div>
+                    <div class="progress-bar-bg mb-3">
+                        <div class="progress-bar-fill" id="weeklyProgressFill"></div>
+                    </div>
+                    <script>
+                        (function() {
+                            const pct = '{{ weekly_progress_pct|default:0 }}';
+                            const el = document.getElementById('weeklyProgressFill');
+                            if (el) el.style.width = pct + '%';
+                        })();
+                    </script>
+                    <p class="text-xs opacity-80">{{ weekly_remaining_text }}</p>
+                </div>
+
+                <!-- Attendance Calendar Card -->
+                <div class="card p-5 mt-4">
+                    <div class="flex-between mb-4">
+                        <div>
+                            <h2 class="card-title">Attendance Log</h2>
+                            <p class="text-xs text-gray mt-1" id="calendarMonthLabel">{{ calendar_month_label }}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="icon-btn-small" id="prevMonthBtn"><i class="ph-bold ph-caret-left"></i></button>
+                            <button class="icon-btn-small" id="nextMonthBtn"><i class="ph-bold ph-caret-right"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="calendar-grid" id="calendarGrid">
+                        <div class="calendar-header-cell">SU</div>
+                        <div class="calendar-header-cell">MO</div>
+                        <div class="calendar-header-cell">TU</div>
+                        <div class="calendar-header-cell">WE</div>
+                        <div class="calendar-header-cell">TH</div>
+                        <div class="calendar-header-cell">FR</div>
+                        <div class="calendar-header-cell">SA</div>
+                        {% for cell in calendar_cells %}
+                        <div class="{{ cell.classes }}">{{ cell.label }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="flex flex-col gap-2 mt-4 ml-1">
+                        <div class="legend-item">
+                            <div class="legend-color bg-green"></div>
+                            <span class="legend-text">Successful Attendance</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color bg-gray-300" style="background-color: #d1d5db;"></div>
+                            <span class="legend-text" style="color: #4b5563;">Absent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registered IP Card -->
+                <div class="card p-5 mt-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="icon-rounded-light text-primary">
+                            <i class="ph-fill ph-map-pin"></i>
+                        </div>
+                        <div>
+                            <p class="card-title mb-0">Live Location</p>
+                            <p class="text-xs text-gray" id="liveLocationText">Waiting for location…</p>
+                        </div>
+                    </div>
+                    <div class="map-placeholder" style="position: relative;">
+                        <div id="mapPreview" style="width: 100%; height: 100%; border-radius: 12px; overflow: hidden; cursor: pointer; background: rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center;">
+                            <span class="text-xs text-gray">Map will appear when location is available</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- End Right Column -->
+
+        </div> <!-- End Container grid -->
+    </main>
+
+    <script>
+        (function () {
+            const hoursEl = document.getElementById('clock-hours');
+            const minutesEl = document.getElementById('clock-minutes');
+            const secondsEl = document.getElementById('clock-seconds');
+            const dateEl = document.getElementById('clock-date');
+
+            if (!hoursEl || !minutesEl || !secondsEl || !dateEl) return;
+
+            const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            function getOrdinalSuffix(day) {
+                if (day > 3 && day < 21) return day + 'th';
+                switch (day % 10) {
+                    case 1: return day + 'st';
+                    case 2: return day + 'nd';
+                    case 3: return day + 'rd';
+                    default: return day + 'th';
+                }
+            }
+
+            function pad(num) {
+                return num.toString().padStart(2, '0');
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const timezone = '{{ system_settings.timezone|default:"Asia/Kolkata" }}';
+
+                // Format time using selected timezone
+                const timeOptions = {
+                    timeZone: timezone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                };
+                const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+                const [h, m, s] = timeStr.split(':');
+
+                hoursEl.textContent = h;
+                minutesEl.textContent = m;
+                secondsEl.textContent = s;
+
+                // Format date using selected timezone
+                const dateOptions = {
+                    timeZone: timezone,
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                };
+                
+                // Get parts to reformat to the specific format "Monday, October 23rd, 2023"
+                const formatter = new Intl.DateTimeFormat('en-US', dateOptions);
+                const parts = formatter.formatToParts(now);
+                const partMap = {};
+                parts.forEach(p => partMap[p.type] = p.value);
+                
+                const weekday = partMap.weekday;
+                const month = partMap.month;
+                const day = parseInt(partMap.day);
+                const year = partMap.year;
+                const dayWithSuffix = getOrdinalSuffix(day);
+
+                dateEl.textContent = `${weekday}, ${month} ${dayWithSuffix}, ${year}`;
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Geolocation and Live Map Logic
+            const mapPreview = document.getElementById('mapPreview');
+            const liveLocationText = document.getElementById('liveLocationText');
+            const mapModalOverlay = document.getElementById('mapModalOverlay');
+            const closeMapModal = document.getElementById('closeMapModal');
+            const modalMapIframe = document.getElementById('modalMapIframe');
+            
+            if (mapPreview && liveLocationText) {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        liveLocationText.textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        
+                        // Google Maps embed URL
+                        const mapUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+                        
+                        // Update preview to show map iframe (disabled pointer events so click bubbles to mapPreview)
+                        mapPreview.innerHTML = `<iframe src="${mapUrl}&layer=c&iwloc=A" width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none;"></iframe>`;
+                        
+                        // Setup modal
+                        mapPreview.addEventListener('click', function() {
+                            modalMapIframe.src = mapUrl; // Load map when modal opens
+                            mapModalOverlay.style.display = 'flex';
+                        });
+                        
+                        if (closeMapModal) {
+                            closeMapModal.addEventListener('click', function() {
+                                mapModalOverlay.style.display = 'none';
+                            });
+                        }
+                        
+                        // Close if clicked outside
+                        if (mapModalOverlay) {
+                            mapModalOverlay.addEventListener('click', function(e) {
+                                if (e.target === mapModalOverlay) {
+                                    mapModalOverlay.style.display = 'none';
+                                }
+                            });
+                        }
+                    }, function(error) {
+                        liveLocationText.textContent = "Location access denied";
+                        mapPreview.innerHTML = `<span class="text-xs text-gray">Unable to fetch location</span>`;
+                    });
+                } else {
+                    liveLocationText.textContent = "Geolocation not supported";
+                }
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const root = document.querySelector('[data-profile-dropdown]');
+            if (!root) return;
+            const trigger = root.querySelector('[data-profile-dropdown-trigger]');
+            const menu = root.querySelector('[data-profile-dropdown-menu]');
+            if (!trigger || !menu) return;
+
+            function setOpen(next) {
+                root.classList.toggle('open', next);
+                trigger.setAttribute('aria-expanded', next ? 'true' : 'false');
+                menu.setAttribute('aria-hidden', next ? 'false' : 'true');
+            }
+
+            function isOpen() {
+                return root.classList.contains('open');
+            }
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setOpen(!isOpen());
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!isOpen()) return;
+                if (!root.contains(e.target)) setOpen(false);
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') setOpen(false);
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const overlay = document.getElementById('logoutConfirm');
+            if (!overlay) return;
+            const openBtn = document.querySelector('[data-open-logout]');
+            const closeBtn = overlay.querySelector('[data-close-logout]');
+            if (!openBtn || !closeBtn) return;
+
+            function open() {
+                overlay.classList.add('open');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+            function close() {
+                overlay.classList.remove('open');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+
+            openBtn.addEventListener('click', () => open());
+            closeBtn.addEventListener('click', () => close());
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) close();
+            });
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') close();
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const textEl = document.getElementById('liveLocationText');
+            if (!textEl) return;
+
+            const mapPreviewEl = document.getElementById('mapPreview');
+            let lastLat = null;
+            let lastLon = null;
+
+            function setText(t) {
+                textEl.textContent = t;
+            }
+
+            function googleEmbedUrl(lat, lon, zoom = 15) {
+                const q = `${lat},${lon}`;
+                return `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=${zoom}&output=embed`;
+            }
+
+            function googleOpenUrl(lat, lon) {
+                const q = `${lat},${lon}`;
+                return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+            }
+
+            function renderMapPreview(lat, lon) {
+                if (!mapPreviewEl) return;
+                mapPreviewEl.innerHTML = '';
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+
+                const iframe = document.createElement('iframe');
+                iframe.src = googleEmbedUrl(lat, lon, 14);
+                iframe.width = '100%';
+                iframe.height = '100%';
+                iframe.style.border = '0';
+                // Prevent the iframe from handling clicks (we want our modal open behavior)
+                iframe.style.pointerEvents = 'none';
+                iframe.loading = 'lazy';
+                iframe.referrerPolicy = 'no-referrer-when-downgrade';
+                // Sandbox to prevent popups/new tabs from the embed
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+
+                wrapper.appendChild(iframe);
+                mapPreviewEl.appendChild(wrapper);
+            }
+
+            // Show last sign-in location immediately (if available)
+            try {
+                const raw = localStorage.getItem('lastSigninLocation');
+                if (raw) {
+                    const loc = JSON.parse(raw);
+                    if (loc && typeof loc.lat === 'number' && typeof loc.lon === 'number') {
+                        lastLat = loc.lat;
+                        lastLon = loc.lon;
+                        const acc = typeof loc.accuracy === 'number' ? ` ±${Math.round(loc.accuracy)}m` : '';
+                        setText(`Lat ${loc.lat.toFixed(5)}, Lon ${loc.lon.toFixed(5)}${acc}`);
+                        renderMapPreview(loc.lat, loc.lon);
+                    }
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            if (!navigator.geolocation) {
+                setText('Location not supported on this browser.');
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const accuracy = pos.coords.accuracy;
+                    lastLat = lat;
+                    lastLon = lon;
+                    setText(`Lat ${lat.toFixed(5)}, Lon ${lon.toFixed(5)} ±${Math.round(accuracy)}m`);
+                    renderMapPreview(lat, lon);
+                },
+                () => {
+                    // Keep last known if we have it; otherwise show message.
+                    if (textEl.textContent === 'Waiting for location…') {
+                        setText('Location permission denied/unavailable.');
+                    }
+                },
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+            );
+
+            // Click to open a popup modal with a larger map (no new tab)
+            if (mapPreviewEl) {
+                mapPreviewEl.addEventListener('click', () => {
+                    if (typeof lastLat !== 'number' || typeof lastLon !== 'number') return;
+                    const modal = document.getElementById('mapModal');
+                    const modalFrame = document.getElementById('mapModalFrame');
+                    if (!modal || !modalFrame) return;
+                    modalFrame.src = googleEmbedUrl(lastLat, lastLon, 16);
+                    modal.classList.add('open');
+                });
+            }
+        })();
+    </script>
+
+    <style>
+        .map-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 9999;
+        }
+        .map-modal-overlay.open { display: flex; }
+        .map-modal {
+            width: min(900px, 96vw);
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .map-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .map-modal-title { font-weight: 700; color: #0f172a; font-size: 14px; }
+        .map-modal-actions { display: flex; gap: 10px; align-items: center; }
+        .map-modal-btn {
+            border: 1px solid rgba(0,0,0,0.12);
+            background: white;
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .map-modal-body { width: 100%; height: min(70vh, 520px); }
+        .map-modal-body iframe { width: 100%; height: 100%; border: 0; }
+
+        .map-modal-close-x {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.12);
+            background: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="map-modal-overlay" id="mapModal" aria-hidden="true">
+        <div class="map-modal" role="dialog" aria-modal="true" aria-label="Location map">
+            <div class="map-modal-header">
+                <div class="map-modal-title">Live GPS Location</div>
+                <div class="map-modal-actions">
+                    <button type="button" class="map-modal-close-x" id="mapModalClose" aria-label="Close map">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="map-modal-body">
+                <iframe id="mapModalFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const modal = document.getElementById('mapModal');
+            const closeBtn = document.getElementById('mapModalClose');
+            const frame = document.getElementById('mapModalFrame');
+            if (!modal || !closeBtn || !frame) return;
+
+            function close() {
+                modal.classList.remove('open');
+                frame.src = '';
+            }
+
+            closeBtn.addEventListener('click', close);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) close();
+            });
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') close();
+            });
+        })();
+    </script>
+
+    <!-- Duplicate Attendance Modal -->
+    <style>
+        .duplicate-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+        }
+        .duplicate-modal-overlay.open { display: flex; }
+        
+        .duplicate-modal-card {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 360px;
+            padding: 48px 32px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            animation: modalFadeInUp 0.3s ease-out forwards;
+        }
+
+        .duplicate-modal-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: #d97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);
+        }
+
+        .duplicate-modal-title {
+            font-size: 21px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+        }
+
+        .duplicate-modal-subtitle {
+            font-size: 15px;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            padding: 0;
+        }
+
+        @keyframes modalFadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <div class="duplicate-modal-overlay" id="dashboardDuplicateModal" aria-hidden="true">
+        <div class="duplicate-modal-card" role="dialog" aria-modal="true" aria-label="Attendance Already Recorded">
+            <div class="duplicate-modal-icon">
+                <i class="ph-fill ph-warning"></i>
+            </div>
+            <h1 class="duplicate-modal-title">Attendance Already Recorded</h1>
+            <p class="duplicate-modal-subtitle">
+                You have already checked in for today. Only one attendance record per day is permitted.
+            </p>
+            <button type="button" class="btn btn-primary w-full" id="dashboardDismissBtn">Dismiss</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const btn = document.getElementById('duplicateCheckinBtn');
+            const modal = document.getElementById('dashboardDuplicateModal');
+            const dismiss = document.getElementById('dashboardDismissBtn');
+            
+            if (btn && modal && dismiss) {
+                btn.addEventListener('click', () => {
+                    modal.classList.add('open');
+                });
+                
+                dismiss.addEventListener('click', () => {
+                    modal.classList.remove('open');
+                });
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.classList.remove('open');
+                });
+            }
+        })();
+    </script>
+
+    <!-- Dynamic Calendar Script -->
+    <script>
+        (function() {
+            let currentYear = new Date().getFullYear();
+            let currentMonth = new Date().getMonth() + 1; // JS months are 0-11
+
+            const prevBtn = document.getElementById('prevMonthBtn');
+            const nextBtn = document.getElementById('nextMonthBtn');
+            const monthLabel = document.getElementById('calendarMonthLabel');
+            const grid = document.getElementById('calendarGrid');
+
+            function fetchCalendarData(year, month) {
+                fetch(`/api/calendar/?year=${year}&month=${month}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        monthLabel.textContent = data.calendar_month_label;
+                        currentYear = data.year;
+                        currentMonth = data.month;
+                        
+                        if (grid) {
+                            grid.innerHTML = `
+                                <div class="calendar-header-cell">SU</div>
+                                <div class="calendar-header-cell">MO</div>
+                                <div class="calendar-header-cell">TU</div>
+                                <div class="calendar-header-cell">WE</div>
+                                <div class="calendar-header-cell">TH</div>
+                                <div class="calendar-header-cell">FR</div>
+                                <div class="calendar-header-cell">SA</div>
+                            `;
+                            data.calendar_cells.forEach(cell => {
+                                const div = document.createElement('div');
+                                div.className = cell.classes;
+                                div.textContent = cell.label;
+                                grid.appendChild(div);
+                            });
+                        }
+                    })
+                    .catch(err => console.error('Error fetching calendar:', err));
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    let m = currentMonth - 1;
+                    let y = currentYear;
+                    if (m < 1) {
+                        m = 12;
+                        y--;
+                    }
+                    fetchCalendarData(y, m);
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    let m = currentMonth + 1;
+                    let y = currentYear;
+                    if (m > 12) {
+                        m = 1;
+                        y++;
+                    }
+                    fetchCalendarData(y, m);
+                });
+            }
+        })();
+    </script>
+
+    {% include "_footer.html" %}
+
+    <!-- Custom Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+        <style>
+            .mobile-bottom-nav {
+                display: none;
+            }
+            @media (max-width: 1024px) {
+                .mobile-bottom-nav {
+                    display: flex;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: #eef2f6;
+                    justify-content: space-around;
+                    align-items: center;
+                    padding: 0.7rem 0.5rem 0.5rem 0.5rem;
+                    box-shadow: 0 -4px 30px rgba(0,0,0,0.03);
+                    border-top-left-radius: 20px;
+                    border-top-right-radius: 20px;
+                    z-index: 1000;
+                    border: 1px solid #f8fafc;
+                }
+                .mobile-nav-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    text-decoration: none;
+                    flex: 1;
+                }
+                .mobile-nav-inner {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0.4rem 1rem;
+                    border-radius: 16px;
+                    transition: all 0.2s ease;
+                }
+                .mobile-nav-item.active .mobile-nav-inner {
+                    background: #f0fdfa; /* Extremely faint cyan background */
+                }
+                .mobile-nav-icon {
+                    font-size: 1.25rem;
+                    color: #64748b; /* Darker for better visibility */
+                    margin-bottom: 0.1rem;
+                }
+                .mobile-nav-label {
+                    font-size: 0.6rem;
+                    font-weight: 800;
+                    color: #64748b; /* Darker for better visibility */
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                .mobile-nav-item.active .mobile-nav-icon,
+                .mobile-nav-item.active .mobile-nav-label {
+                    color: #00bcd4; /* Dark Cyan matching standard */
+                }
+
+                /* Ensure bottom content doesn't get covered by the navbar margin */
+                body {
+                    padding-bottom: 80px !important;
+                }
+            }
+        </style>
+        
+        <a href="{% url 'dashboard' %}" class="mobile-nav-item active">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-house mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Home</span>
+            </div>
+        </a>
+        <a href="{% url 'analytics' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-chart-line-up mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Analytics</span>
+            </div>
+        </a>
+        <a href="{% url 'settings' %}" class="mobile-nav-item">
+            <div class="mobile-nav-inner">
+                <i class="ph-fill ph-gear mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Settings</span>
+            </div>
+        </a>
+    </nav>
+
+    <!-- Map Modal -->
+    <div id="mapModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: white; width: 92%; max-width: 500px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; animation: modalPop 0.3s ease-out;">
+            <div style="padding: 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin: 0;">Live GPS Location</h3>
+                <button id="closeMapModal" style="background: transparent; border: 1px solid #e2e8f0; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s;">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+            <div style="height: 60vh; min-height: 400px; width: 100%; background: #f8fafc; position: relative;">
+                <iframe id="modalMapIframe" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
+            </div>
+            <div style="padding: 1rem 1.25rem; background: white; font-size: 0.85rem; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="ph-fill ph-info text-primary" style="font-size: 1.2rem;"></i> You can zoom, pan, and interact with the map.
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes modalPop {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        #closeMapModal:hover {
+            background: #f1f5f9 !important;
+            color: #ef4444 !important;
+            border-color: #ef4444 !important;
+        }
+    </style>
+</body>
+
+</html>

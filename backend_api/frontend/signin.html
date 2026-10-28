@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - AttendancePro</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script src="{% static 'theme.js' %}" defer></script>
+    <script src="{% static 'permissions.js' %}"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Mediapip -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+
+<body class="bg-gray-light">
+    <!-- Navbar (simplified for sign in page) -->
+    <nav class="navbar navbar-border">
+        <!-- Desktop Logo -->
+        <div class="logo desktop-only">
+            <i class="ph-fill ph-check-square-offset"></i>
+            <span>AttendancePro</span>
+        </div>
+
+        <!-- Mobile Navbar -->
+        <div class="mobile-navbar mobile-only">
+            <a href="{% url 'welcome' %}" class="nav-back-btn">
+                <i class="ph-bold ph-caret-left"></i>
+            </a>
+            <span class="mobile-nav-title">Sign In</span>
+            <div class="nav-spacer"></div>
+        </div>
+
+    </nav>
+
+    <!-- Permission Overlay -->
+    <div id="permissionOverlay" class="permission-overlay" style="display:none;">
+        <div class="permission-card">
+            <div class="permission-icon">
+                <i class="ph-fill ph-lock-key"></i>
+            </div>
+            <h2 class="permission-title">Permissions Required</h2>
+            <p class="permission-text">AttendancePro needs access to your camera to verify your identity through face recognition.</p>
+            <div id="insecureWarning" class="insecure-warning" style="display:none;">
+                <i class="ph-bold ph-warning-circle"></i>
+                <span>Warning: Browser security requires HTTPS for camera access on this device.</span>
+            </div>
+            <button id="grantPermissionsBtn" class="btn btn-primary w-full">Grant Permissions</button>
+            <a href="{% url 'welcome' %}" class="btn btn-text w-full mt-2">Go Back</a>
+        </div>
+    </div>
+
+    <style>
+        .permission-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .permission-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        .permission-icon {
+            width: 64px;
+            height: 64px;
+            background: #e0f2fe;
+            color: #0284c7;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 24px;
+        }
+        .permission-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .permission-text {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .insecure-warning {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+
+    <main class="signin-wrapper">
+        <div class="signin-card-container">
+            <div class="signin-card">
+
+                <!-- Left Side: Camera Scan -->
+                <div class="signin-left">
+                    <div class="mobile-only mobile-welcome text-center">
+                        <h2 class="welcome-title">Welcome Back</h2>
+                        <p class="welcome-subtitle">Verify your identity to log your attendance for today.</p>
+                    </div>
+                    <div class="camera-placeholder">
+                        <div class="camera-circle">
+                            <!-- Outer circle with light blue border -->
+                            <div class="camera-inner-circle">
+                                <div class="camera-frame">
+                                    <video id="cameraVideo" autoplay playsinline muted></video>
+                                    <canvas id="overlayCanvas" class="overlay-canvas"></canvas>
+                                </div>
+                                <div id="cameraOverlay" class="camera-overlay">
+                                    <!-- Center icon removed -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="scan-controls">
+                            <div id="scanStatus" class="scan-status" aria-live="polite">Ready to scan</div>
+                            <form id="scanForm" method="post" action="{% url 'signin-scan' %}">
+                                {% csrf_token %}
+                                <button id="scanButton" type="submit" class="btn btn-primary btn-scan-floating">
+                                    <i class="ph ph-webcam"></i> Scan Now
+                                </button>
+                            </form>
+                        </div>
+                        <canvas id="scanCanvas" style="display:none"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vertical Divider -->
+                <div class="signin-divider"></div>
+
+                <!-- Right Side: Info & Manual Login -->
+                <div class="signin-right">
+                    <h2 class="verification-title desktop-only">Identity Verification</h2>
+
+                    <div class="instruction-box desktop-only">
+                        <p><i>"Position your face or ID card within the frame"</i></p>
+                    </div>
+
+                    <div class="info-note desktop-only">
+                        <i class="ph-fill ph-info info-icon"></i>
+                        <p>Ensure you are in a well-lit area for faster face recognition.</p>
+                    </div>
+
+                    <hr class="separator-line">
+
+                    <p class="trouble-text">Having trouble with the camera?</p>
+
+                    <a class="btn-manual-login" href="{% url 'manual-login' %}">
+                        <div class="btn-manual-left">
+                            <i class="ph ph-sign-in"></i>
+                            <span>Manual Login</span>
+                        </div>
+                        <i class="ph ph-caret-right"></i>
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- Below Card Text -->
+            <div class="below-card-actions">
+                <p class="register-prompt">Don't have an account? <a href="{% url 'register' %}" class="link-primary">Register Now</a></p>
+                <p class="security-note"><i class="ph-fill ph-shield-check"></i> Enterprise-grade biometric security
+                    active</p>
+            </div>
+        </div>
+    </main>
+
+    {% include "_footer.html" %}
+    <script>
+        const video = document.getElementById('cameraVideo');
+        const overlay = document.getElementById('cameraOverlay');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const scanForm = document.getElementById('scanForm');
+        const scanButton = document.getElementById('scanButton');
+        const scanStatus = document.getElementById('scanStatus');
+        const scanCanvas = document.getElementById('scanCanvas');
+        const ctx = overlayCanvas.getContext('2d');
+
+        let scanLoopId = null;
+        let scanInProgress = false;
+        let lastSendAt = 0;
+        let stableCount = 0;
+        let lastCenter = null; // {x,y} normalized 0..1
+        let lastBoxArea = null; // normalized area
+        let gateOk = false;
+        let gateReason = "Align your face properly";
+        let frameNo = 0;
+
+/* ---------------- FACE MESH SETUP ---------------- */
+    const faceMesh = new FaceMesh({
+        locateFile: (file) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}`
+    });
+
+    faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+    });
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function applyCoverCropToLandmarks(landmarks) {
+        // The video is rendered into a square frame with object-fit: cover,
+        // so parts of the camera frame may be cropped. MediaPipe landmarks are
+        // normalized to the *uncropped* input image; we transform them to match
+        // the square cover crop so the overlay aligns with the visible face.
+        const iw = video.videoWidth || 1;
+        const ih = video.videoHeight || 1;
+        const a = iw / ih; // input aspect ratio
+
+        if (!Number.isFinite(a) || a <= 0) return landmarks;
+
+        // Container is square (aspect 1). For cover:
+        // - if a > 1 (wider), crop left/right. x' = x*a - (a-1)/2
+        // - if a < 1 (taller), crop top/bottom. y' = y*(1/a) - ((1/a)-1)/2
+        if (a > 1) {
+            const off = (a - 1) / 2;
+            return landmarks.map((p) => ({ ...p, x: p.x * a - off }));
+        }
+
+        if (a < 1) {
+            const inv = 1 / a;
+            const off = (inv - 1) / 2;
+            return landmarks.map((p) => ({ ...p, y: p.y * inv - off }));
+        }
+
+        return landmarks;
+    }
+
+    function computeGate(landmarks) {
+        // Compute normalized bounding box of landmarks.
+        let minX = 1, minY = 1, maxX = 0, maxY = 0;
+        for (const p of landmarks) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+        minX = clamp(minX, 0, 1); minY = clamp(minY, 0, 1);
+        maxX = clamp(maxX, 0, 1); maxY = clamp(maxY, 0, 1);
+
+        const w = Math.max(0.0001, (maxX - minX));
+        const h = Math.max(0.0001, (maxY - minY));
+        const area = w * h;
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+
+        // Adaptive thresholds:
+        // - When face is far (small area), allow more center tolerance.
+        // - When face is close (large area), require slightly tighter centering to avoid crop.
+        const far = area < 0.06;
+        const near = area > 0.30;
+        const tolX = far ? 0.22 : near ? 0.14 : 0.18;
+        const tolY = far ? 0.24 : near ? 0.16 : 0.20;
+
+        const centered = Math.abs(cx - 0.5) <= tolX && Math.abs(cy - 0.5) <= tolY;
+        // Wider size range so it works from farther away and closer up.
+        const goodSize = area >= 0.025 && area <= 0.55; // too small / too close
+        const inFrame = minX > 0.03 && minY > 0.03 && maxX < 0.97 && maxY < 0.97;
+
+        // Stability: center + size change small across frames
+        const centerDelta = lastCenter ? Math.hypot(cx - lastCenter.x, cy - lastCenter.y) : 0;
+        const areaDelta = lastBoxArea != null ? Math.abs(area - lastBoxArea) : 0;
+        const stableNow = centerDelta <= 0.018 && areaDelta <= 0.03;
+
+        lastCenter = { x: cx, y: cy };
+        lastBoxArea = area;
+
+        const ok = centered && goodSize && inFrame;
+        if (ok && stableNow) stableCount += 1;
+        else stableCount = 0;
+
+        let reason = "Hold still…";
+        if (!inFrame) reason = "Keep your whole face in frame";
+        else if (!goodSize) reason = area < 0.025 ? "Move closer to the camera" : "Move a bit away";
+        else if (!centered) reason = "Center your face in the circle";
+        else if (!stableNow) reason = "Hold still…";
+
+        // Faster gating: fewer stable frames required.
+        return { ok: ok && stableCount >= 2, reason };
+    }
+
+    faceMesh.onResults((results) => {
+        frameNo += 1;
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+        if (results.multiFaceLandmarks) {
+            for (const landmarks of results.multiFaceLandmarks) {
+                const drawLm = applyCoverCropToLandmarks(landmarks);
+
+                // Black wireframe (like reference): use tessellation triangles.
+                // Draw every other frame for performance.
+                if (frameNo % 2 === 0) {
+                    drawConnectors(ctx, drawLm, FACEMESH_TESSELATION, {
+                        color: 'rgba(0, 0, 0, 0.85)',
+                        lineWidth: 1
+                    });
+                }
+
+                const gate = computeGate(landmarks);
+                gateOk = gate.ok;
+                gateReason = gate.reason;
+                setStatus(gateOk ? "Face ready ✔" : gateReason, gateOk ? "success" : "info");
+            }
+        } else {
+            gateOk = false;
+            stableCount = 0;
+            lastCenter = null;
+            lastBoxArea = null;
+            setStatus("Align your face properly", "info");
+        }
+    });
+
+    /* ---------------- CAMERA ---------------- */
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 60, min: 30 }
+                }
+            });
+
+            video.srcObject = stream;
+
+            video.onloadedmetadata = () => {
+                video.play();
+                overlay.classList.add('hidden');
+                updateOverlaySize();
+
+                // START FACE MESH LOOP
+                processFrame();
+            };
+
+        } catch (err) {
+            console.error(err);
+            setStatus('Allow camera permission!', 'error');
+        }
+    }
+
+    /* ---------------- PROCESS FRAME ---------------- */
+    async function processFrame() {
+        if (video.readyState >= 2) {
+            await faceMesh.send({ image: video });
+        }
+        requestAnimationFrame(processFrame);
+    }
+
+    /* ---------------- UI HELPERS ---------------- */
+    function updateOverlaySize() {
+        const frame = document.querySelector('.camera-frame');
+        const rect = (frame || video).getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Match the displayed circle size for perfect landmark alignment.
+        overlayCanvas.width = Math.max(1, Math.round(rect.width * dpr));
+        overlayCanvas.height = Math.max(1, Math.round(rect.height * dpr));
+        overlayCanvas.style.width = rect.width + "px";
+        overlayCanvas.style.height = rect.height + "px";
+
+        // Do NOT apply an extra transform here.
+        // MediaPipe drawing utils already scale normalized landmarks by canvas.width/height.
+        // Applying ctx.setTransform(dpr, ...) would double-scale and misalign the mesh.
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function setStatus(text, type = "info") {
+        if (!scanStatus) return;
+        scanStatus.textContent = text;
+
+        if (type === "success") scanStatus.style.color = "#16a34a";
+        else if (type === "error") scanStatus.style.color = "#dc2626";
+        else scanStatus.style.color = "#0b69ff";
+    }
+
+    /* ---------------- CAPTURE & SEND ---------------- */
+    async function captureAndSend() {
+
+        if (!video.srcObject) {
+            setStatus("Camera not ready", "error");
+            return;
+        }
+
+        if (!gateOk) {
+            setStatus(gateReason || "Align your face properly", "info");
+            return;
+        }
+
+        const now = Date.now();
+        // Faster retries while still protecting the server.
+        if (now - lastSendAt < 600) {
+            return;
+        }
+        lastSendAt = now;
+
+        if (scanInProgress) return;
+        scanInProgress = true;
+
+        if (scanButton) scanButton.disabled = true;
+        setStatus("Verifying…", "info");
+
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+
+        if (!scanCanvas || !width || !height) {
+            setStatus("Camera not ready", "error");
+            if (scanButton) scanButton.disabled = false;
+            scanInProgress = false;
+            return;
+        }
+
+        scanCanvas.width = width;
+        scanCanvas.height = height;
+
+        const ctx2 = scanCanvas.getContext('2d');
+        ctx2.drawImage(video, 0, 0, width, height);
+
+        const dataUrl = scanCanvas.toDataURL('image/jpeg', 0.9);
+
+        try {
+            const response = await fetch(scanForm.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ image: dataUrl }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setStatus(`Welcome ${result.name}`, "success");
+                stopScanLoop();
+                // Session is set server-side in views.signin_scan.
+                // Show the Sign-in Successful page (then it redirects to dashboard).
+                setTimeout(() => {
+                    const ts = result.timestamp ? new Date(result.timestamp) : new Date();
+                    const timezone = '{{ system_settings.timezone|default:"Asia/Kolkata" }}';
+                    const dateOptions = { timeZone: timezone, year: 'numeric', month: 'long', day: 'numeric' };
+                    const timeOptions = { timeZone: timezone, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    
+                    const date = ts.toLocaleDateString('en-US', dateOptions);
+                    const time = ts.toLocaleTimeString('en-US', timeOptions);
+                    const params = new URLSearchParams({ name: result.name || '', date, time });
+                    window.location.href = `{% url "signin-success" %}?${params.toString()}`;
+                }, 450);
+            } else {
+                setStatus(result.message || "Face not recognized", "error");
+            }
+
+        } catch (err) {
+            console.error(err);
+            setStatus("Server error", "error");
+        }
+
+        if (scanButton) scanButton.disabled = false;
+        scanInProgress = false;
+    }
+
+    /* ---------------- SCAN LOOP ---------------- */
+    function startScanLoop() {
+        if (scanLoopId) return;
+        // Check frequently; gate + cooldown ensure server isn't spammed.
+        scanLoopId = setInterval(captureAndSend, 150);
+        if (scanButton) scanButton.innerHTML = "Scanning...";
+    }
+
+    function stopScanLoop() {
+        if (!scanLoopId) return;
+        clearInterval(scanLoopId);
+        scanLoopId = null;
+        if (scanButton) scanButton.innerHTML = '<i class="ph ph-webcam"></i> Scan Now';
+    }
+
+    if (scanForm) {
+        scanForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            scanLoopId ? stopScanLoop() : startScanLoop();
+        });
+    }
+
+    /* ---------------- COOKIE ---------------- */
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    /* ---------------- SESSION TIMEOUT ---------------- */
+    const sessionTimeoutSeconds = parseInt("{{ session_timeout_seconds|default:1800 }}", 10);
+    let signinTimeoutId = setTimeout(() => {
+        stopScanLoop();
+        setStatus("Sign-in session timed out.", "error");
+        setTimeout(() => {
+            window.location.href = '{% url "welcome" %}';
+        }, 2000);
+    }, sessionTimeoutSeconds * 1000);
+
+    // Optional: Reset timer on click/interaction if needed
+    document.addEventListener('click', () => {
+        clearTimeout(signinTimeoutId);
+        signinTimeoutId = setTimeout(() => {
+            stopScanLoop();
+            setStatus("Sign-in session timed out.", "error");
+            setTimeout(() => {
+                window.location.href = '{% url "welcome" %}';
+            }, 2000);
+        }, sessionTimeoutSeconds * 1000);
+    });
+
+    /* ---------------- INIT ---------------- */
+    async function initializeSignIn() {
+        const isSecure = PermissionsManager.checkSecureContext();
+        if (!isSecure) {
+            document.getElementById('permissionOverlay').style.display = 'flex';
+            document.getElementById('insecureWarning').style.display = 'flex';
+        }
+
+        try {
+            const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+            if (cameraPermission.state === 'granted') {
+                startCamera();
+            } else {
+                document.getElementById('permissionOverlay').style.display = 'flex';
+            }
+        } catch (e) {
+            document.getElementById('permissionOverlay').style.display = 'flex';
+        }
+    }
+
+    document.getElementById('grantPermissionsBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('grantPermissionsBtn');
+        btn.disabled = true;
+        btn.textContent = 'Requesting...';
+
+        const stream = await PermissionsManager.requestCamera();
+        
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            document.getElementById('permissionOverlay').style.display = 'none';
+            startCamera();
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Grant Permissions';
+            setStatus('Camera permission is required to proceed.', 'error');
+        }
+    });
+
+    initializeSignIn();
+    window.addEventListener('resize', updateOverlaySize);
+</script>
+</body>
+
+</html>

@@ -1,0 +1,10 @@
+# Pin numpy first - must use 2.x for Python 3.14 (pre-built wheels)
+numpy>=2.0,<2.5
+torch
+torchvision
+facenet-pytorch
+opencv-python
+pillow
+matplotlib
+Django>=5.0,<6.0
+python-dotenv
