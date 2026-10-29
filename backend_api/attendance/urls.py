@@ -52,5 +52,8 @@ urlpatterns = [
     path("api/mobile/checkout/", mobile_api.mobile_checkout, name="mobile-checkout"),
     path("api/mobile/settings/", mobile_api.mobile_settings_get, name="mobile-settings-get"),
     path("api/mobile/settings/update/", mobile_api.mobile_settings_update, name="mobile-settings-update"),
+    path("api/mobile/email/request-change/", mobile_api.mobile_request_email_change, name="mobile-email-request-change"),
+    path("api/mobile/email/verify-change/", mobile_api.mobile_verify_email_change, name="mobile-email-verify-change"),
+    path("api/mobile/face/recalibrate/", mobile_api.mobile_recalibrate_face, name="mobile-face-recalibrate"),
 ]
 

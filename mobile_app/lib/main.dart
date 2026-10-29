@@ -14,6 +14,8 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'admin_dashboard.dart';
 import 'registration_screen.dart';
+import 'change_email_screen.dart';
+import 'recalibrate_face_screen.dart';
 
 class ApiConfig {
   static String? customHost;
@@ -65,6 +67,12 @@ class ApiConfig {
   static String get mobileSettingsUrl => '$baseUrl/api/mobile/settings/';
   static String get mobileSettingsUpdateUrl =>
       '$baseUrl/api/mobile/settings/update/';
+  static String get mobileEmailRequestChangeUrl =>
+      '$baseUrl/api/mobile/email/request-change/';
+  static String get mobileEmailVerifyChangeUrl =>
+      '$baseUrl/api/mobile/email/verify-change/';
+  static String get mobileRecalibrateFaceUrl =>
+      '$baseUrl/api/mobile/face/recalibrate/';
   static String dashboardUrl(String name, [int? year, int? month]) {
     String query = 'name=${Uri.encodeComponent(name)}';
     if (year != null && month != null) {
@@ -1642,204 +1650,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  void _showChangeEmailDialog() {
-    final emailController = TextEditingController(text: _profileEmail);
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        bool isUpdating = false;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Row(
-                children: [
-                  Icon(
-                    Icons.mail_outline_rounded,
-                    color: Color(0xFF0084FF),
-                    size: 24,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Change Email',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
-              ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Enter your new email address. This will update your attendance account in the database.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.alternate_email_rounded,
-                          color: Color(0xFF0084FF),
-                          size: 20,
-                        ),
-                        hintText: 'name@example.com',
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 14,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF0084FF),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter an email';
-                        }
-                        final emailRegex = RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        );
-                        if (!emailRegex.hasMatch(value.trim())) {
-                          return 'Please enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actionsPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 14,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isUpdating ? null : () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0084FF),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                  ),
-                  onPressed: isUpdating
-                      ? null
-                      : () async {
-                          if (formKey.currentState?.validate() ?? false) {
-                            setDialogState(() => isUpdating = true);
-                            final newEmail = emailController.text.trim();
-                            setState(() {
-                              _profileEmail = newEmail;
-                            });
-                            await _saveSettingsToServer();
-                            if (mounted) {
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          'Email updated to: $newEmail',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  backgroundColor: const Color(0xFF10B981),
-                                  duration: const Duration(seconds: 3),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                  child: isUpdating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Save Email',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     _timer.cancel();
@@ -2136,115 +1946,788 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openMonthPicker() {
+    int pickerYear = DateTime.now().year;
+    if (_selectedMonthKey != null && _selectedMonthKey!.contains('-')) {
+      final parts = _selectedMonthKey!.split('-');
+      if (parts.isNotEmpty) {
+        pickerYear = int.tryParse(parts[0]) ?? pickerYear;
+      }
+    } else if (_availableMonths.isNotEmpty) {
+      final firstKey = _availableMonths[0]['key']?.toString() ?? '';
+      if (firstKey.contains('-')) {
+        pickerYear = int.tryParse(firstKey.split('-')[0]) ?? pickerYear;
+      }
+    }
+
+    int activeTab = 0; // 0 = Recorded Periods, 1 = Month & Year Grid
+
+    const monthShorts = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const monthFulls = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final options = [
-          {"key": "all", "label": "All Records"},
-          ..._availableMonths,
-        ];
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Period',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF64748B),
-                      ),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...options.map((monthOpt) {
-                  final isSelected = _selectedMonthName == monthOpt['label'];
-                  return InkWell(
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _fetchAnalyticsData(monthKey: monthOpt['key']);
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFE0F9FD)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF0066FF)
-                              : const Color(0xFFE2E8F0),
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
                       ),
-                      child: Row(
+                      // Header Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.calendar_month_outlined,
-                            size: 18,
-                            color: isSelected
-                                ? const Color(0xFF0066FF)
-                                : const Color(0xFF64748B),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Select Period',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Browse records or pick any month & year',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          Text(
-                            monthOpt['label'] ?? '',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isSelected
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: isSelected
-                                  ? const Color(0xFF0066FF)
-                                  : const Color(0xFF1E293B),
+                          InkWell(
+                            onTap: () => Navigator.of(ctx).pop(),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF1F5F9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 20,
+                                color: Color(0xFF64748B),
+                              ),
                             ),
                           ),
-                          const Spacer(),
-                          if (isSelected)
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFF0066FF),
-                              size: 20,
-                            ),
                         ],
                       ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
+                      const SizedBox(height: 16),
+
+                      // Tabs: Recorded Periods vs Month & Year Grid
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setModalState(() => activeTab = 0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 9),
+                                  decoration: BoxDecoration(
+                                    color: activeTab == 0 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: activeTab == 0
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.06),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.history_rounded,
+                                        size: 16,
+                                        color: activeTab == 0
+                                            ? const Color(0xFF0084FF)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Recorded Periods',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: activeTab == 0
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          color: activeTab == 0
+                                              ? const Color(0xFF0F172A)
+                                              : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setModalState(() => activeTab = 1),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 9),
+                                  decoration: BoxDecoration(
+                                    color: activeTab == 1 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: activeTab == 1
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.06),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_month_rounded,
+                                        size: 16,
+                                        color: activeTab == 1
+                                            ? const Color(0xFF0084FF)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Any Month & Year',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: activeTab == 1
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          color: activeTab == 1
+                                              ? const Color(0xFF0F172A)
+                                              : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // TAB 0: Recorded Months & All Records
+                      if (activeTab == 0)
+                        Flexible(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // All Records Option
+                                _buildPeriodTile(
+                                  label: 'All Records',
+                                  subtitle: 'View complete attendance history',
+                                  isSelected: _selectedMonthName == 'All Records',
+                                  badge: null,
+                                  onTap: () {
+                                    Navigator.of(ctx).pop();
+                                    _fetchAnalyticsData(monthKey: 'all');
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Active Recorded Months',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF64748B),
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    if (_availableMonths.isNotEmpty)
+                                      Text(
+                                        '${_availableMonths.length} available',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0084FF),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                if (_availableMonths.isEmpty)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'No recorded monthly data yet.',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  ..._availableMonths.map((monthOpt) {
+                                    final label = monthOpt['label']?.toString() ?? '';
+                                    final count = monthOpt['count'];
+                                    final isSelected = _selectedMonthName == label;
+                                    return _buildPeriodTile(
+                                      label: label,
+                                      subtitle: null,
+                                      badge: count != null ? '$count records' : null,
+                                      isSelected: isSelected,
+                                      onTap: () {
+                                        Navigator.of(ctx).pop();
+                                        _fetchAnalyticsData(monthKey: monthOpt['key']);
+                                      },
+                                    );
+                                  }),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // TAB 1: Pick Any Month & Year (Calendar Grid)
+                      if (activeTab == 1)
+                        Flexible(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                // Year Bar
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.chevron_left_rounded, size: 28),
+                                        color: const Color(0xFF0F172A),
+                                        onPressed: () {
+                                          setModalState(() {
+                                            pickerYear--;
+                                          });
+                                        },
+                                      ),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 16,
+                                            color: Color(0xFF0084FF),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '$pickerYear',
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.chevron_right_rounded, size: 28),
+                                        color: const Color(0xFF0F172A),
+                                        onPressed: () {
+                                          setModalState(() {
+                                            pickerYear++;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // 12-Month Grid
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    childAspectRatio: 1.6,
+                                  ),
+                                  itemCount: 12,
+                                  itemBuilder: (context, index) {
+                                    final monthNum = index + 1;
+                                    final key = '$pickerYear-${_twoDigits(monthNum)}';
+                                    final shortName = monthShorts[index];
+                                    final fullName = '${monthFulls[index]} $pickerYear';
+                                    final isSelected = _selectedMonthKey == key || _selectedMonthName == fullName;
+
+                                    // Check if this month has recorded data in database
+                                    final recordedMonth = _availableMonths.firstWhere(
+                                      (m) => m['key'] == key,
+                                      orElse: () => <String, dynamic>{},
+                                    );
+                                    final hasRecords = recordedMonth.isNotEmpty;
+                                    final recCount = recordedMonth['count'];
+
+                                    return InkWell(
+                                      onTap: () {
+                                        Navigator.of(ctx).pop();
+                                        _fetchAnalyticsData(monthKey: key);
+                                      },
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 180),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFF0084FF)
+                                              : (hasRecords
+                                                  ? const Color(0xFFEFF6FF)
+                                                  : const Color(0xFFF8FAFC)),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? const Color(0xFF0084FF)
+                                                : (hasRecords
+                                                    ? const Color(0xFF93C5FD)
+                                                    : const Color(0xFFE2E8F0)),
+                                            width: isSelected || hasRecords ? 1.5 : 1,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              shortName,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : (hasRecords
+                                                        ? const Color(0xFF0066FF)
+                                                        : const Color(0xFF334155)),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            if (hasRecords)
+                                              Text(
+                                                recCount != null ? '$recCount rec' : 'has data',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isSelected
+                                                      ? Colors.white.withOpacity(0.9)
+                                                      : const Color(0xFF0066FF),
+                                                ),
+                                              )
+                                            else
+                                              Text(
+                                                monthFulls[index].substring(0, 3).toUpperCase(),
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w600,
+                                                  letterSpacing: 0.5,
+                                                  color: isSelected
+                                                      ? Colors.white.withOpacity(0.8)
+                                                      : const Color(0xFF94A3B8),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+
+                                // Helper note
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF0084FF),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'Highlighted months contain recorded attendance data',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
+  Widget _buildPeriodTile({
+    required String label,
+    String? subtitle,
+    String? badge,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFE0F9FD)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0084FF)
+                : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF0084FF).withOpacity(0.12)
+                    : const Color(0xFFE2E8F0).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.calendar_month_outlined,
+                size: 18,
+                color: isSelected
+                    ? const Color(0xFF0084FF)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? const Color(0xFF0084FF)
+                          : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (badge != null)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF0084FF).withOpacity(0.15)
+                      : const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  badge,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected
+                        ? const Color(0xFF0084FF)
+                        : const Color(0xFF475569),
+                  ),
+                ),
+              ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF0084FF),
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
+
+  void _toggleNotificationMute() {
+    setState(() {
+      _attendanceAlertEnabled = !_attendanceAlertEnabled;
+    });
+    _saveSettingsToServer();
+    HapticFeedback.lightImpact();
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _attendanceAlertEnabled
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_off_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _attendanceAlertEnabled
+                  ? 'Notifications unmuted'
+                  : 'Notifications muted',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        backgroundColor: _attendanceAlertEnabled
+            ? const Color(0xFF10B981)
+            : const Color(0xFF334155),
+        duration: const Duration(milliseconds: 1800),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _buildProfileMenu({Widget? child}) {
+    return PopupMenuButton<String>(
+      tooltip: 'Account Menu',
+      offset: const Offset(0, 50),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      elevation: 8,
+      shadowColor: Colors.black.withOpacity(0.18),
+      color: Colors.white,
+      onSelected: (value) {
+        if (value == 'logout') {
+          _showLogoutDialog();
+        } else if (value == 'profile') {
+          setState(() => _currentIndex = 2);
+        } else if (value == 'settings') {
+          setState(() => _currentIndex = 3);
+        }
+      },
+      itemBuilder: (context) => [
+        // User identity info header
+        PopupMenuItem<String>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 19,
+                backgroundColor: const Color(0xFFEFF6FF),
+                child: Text(
+                  widget.userName.isNotEmpty
+                      ? widget.userName[0].toUpperCase()
+                      : 'U',
+                  style: const TextStyle(
+                    color: Color(0xFF0084FF),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.userName,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _profileEmail.isNotEmpty
+                          ? _profileEmail
+                          : 'Logged in employee',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        // My Profile item
+        const PopupMenuItem<String>(
+          value: 'profile',
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF334155)),
+              SizedBox(width: 12),
+              Text(
+                'My Profile',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Settings item
+        const PopupMenuItem<String>(
+          value: 'settings',
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 20, color: Color(0xFF334155)),
+              SizedBox(width: 12),
+              Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        // Log Out item
+        const PopupMenuItem<String>(
+          value: 'logout',
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
+              SizedBox(width: 12),
+              Text(
+                'Log Out',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFEF4444),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: child ??
+          const Padding(
+            padding: EdgeInsets.only(right: 16.0, left: 8.0),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFEFF6FF),
+              child: Icon(Icons.person, color: Color(0xFF0066FF)),
+            ),
+          ),
+    );
+  }
 
   void _showLogoutDialog() {
     showDialog(
@@ -2386,18 +2869,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? Padding(
                       padding: const EdgeInsets.only(left: 16.0),
                       child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFDEC9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.person_rounded,
-                              color: Color(0xFFC2410C),
-                              size: 22,
+                        child: _buildProfileMenu(
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFDEC9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.person_rounded,
+                                color: Color(0xFFC2410C),
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),
@@ -2454,38 +2939,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Padding(
                         padding: const EdgeInsets.only(right: 16.0),
                         child: IconButton(
-                          icon: const Icon(
-                            Icons.notifications_rounded,
-                            color: Color(0xFF0066FF),
+                          tooltip: _attendanceAlertEnabled
+                              ? 'Mute Notifications'
+                              : 'Unmute Notifications',
+                          icon: Icon(
+                            _attendanceAlertEnabled
+                                ? Icons.notifications_rounded
+                                : Icons.notifications_off_rounded,
+                            color: _attendanceAlertEnabled
+                                ? const Color(0xFF0066FF)
+                                : const Color(0xFFEF4444),
                             size: 24,
                           ),
-                          onPressed: () {},
+                          onPressed: _toggleNotificationMute,
                         ),
                       ),
                     ]
                   : [
                       IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: Color(0xFF1E293B),
+                        tooltip: _attendanceAlertEnabled
+                            ? 'Mute Notifications'
+                            : 'Unmute Notifications',
+                        icon: Icon(
+                          _attendanceAlertEnabled
+                              ? Icons.notifications_none_rounded
+                              : Icons.notifications_off_rounded,
+                          color: _attendanceAlertEnabled
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFEF4444),
                         ),
-                        onPressed: () {},
+                        onPressed: _toggleNotificationMute,
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _currentIndex = 2; // Switch to Profile tab
-                          });
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.only(right: 16.0, left: 8.0),
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Color(0xFFEFF6FF),
-                            child: Icon(Icons.person, color: Color(0xFF0066FF)),
-                          ),
-                        ),
-                      ),
+                      _buildProfileMenu(),
                     ],
             ),
       body: _buildBody(hours, minutes, seconds, dateStr),
@@ -3795,12 +4280,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  _selectedMonthName,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
+                Expanded(
+                  child: InkWell(
+                    onTap: _openMonthPicker,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _selectedMonthName,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 22,
+                                color: Color(0xFF0084FF),
+                              ),
+                            ],
+                          ),
+                          if (_selectedMonthKey != null && _selectedMonthKey != 'all')
+                            GestureDetector(
+                              onTap: () => _fetchAnalyticsData(monthKey: 'all'),
+                              child: const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Filtered month • Tap to view all',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0084FF),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -3849,26 +4377,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
             else if (recordsToShow.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Icon(
-                      Icons.event_busy_rounded,
-                      size: 48,
-                      color: Color(0xFF94A3B8),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'No records found for this period',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF64748B),
-                        fontSize: 15,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
                       ),
+                      child: const Icon(
+                        Icons.event_busy_rounded,
+                        size: 40,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No records found for $_selectedMonthName',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'No clock-in activity recorded for this period.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _openMonthPicker,
+                          icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                          label: const Text('Change Month'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0084FF),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        if (_selectedMonthKey != null && _selectedMonthKey != 'all') ...[
+                          const SizedBox(width: 10),
+                          OutlinedButton(
+                            onPressed: () => _fetchAnalyticsData(monthKey: 'all'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF0F172A),
+                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('View All Records'),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -4948,7 +5526,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const RegistrationScreen(),
+                            builder: (context) => RecalibrateFaceScreen(
+                              userName: widget.userName,
+                            ),
                           ),
                         );
                       },
@@ -5082,58 +5662,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                         ),
-                        InkWell(
-                          onTap: _showChangeEmailDialog,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE0F2FE),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 13,
-                                  color: Color(0xFF0084FF),
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Change',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0084FF),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
-                    height: 44,
+                    height: 46,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF0084FF),
                         side: const BorderSide(
                           color: Color(0xFF0084FF),
-                          width: 1.4,
+                          width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: _showChangeEmailDialog,
+                      onPressed: () async {
+                        final updatedEmail = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChangeEmailScreen(
+                              currentEmail: _profileEmail,
+                              userName: widget.userName,
+                            ),
+                          ),
+                        );
+                        if (updatedEmail != null &&
+                            updatedEmail is String &&
+                            updatedEmail.isNotEmpty) {
+                          setState(() {
+                            _profileEmail = updatedEmail;
+                          });
+                        }
+                      },
                       icon: const Icon(
                         Icons.mark_email_read_outlined,
                         size: 18,
@@ -5142,7 +5706,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         'Change Email Address',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     ),

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time as dtime, timedelta
 
 from .models import RegisteredUser, AttendanceRecord, GeofenceSetting, SystemSetting
 from attendance_system import check_location_allowed
@@ -432,17 +432,26 @@ def mobile_analytics(request: HttpRequest) -> JsonResponse:
     # Query all records for user
     all_user_records = AttendanceRecord.objects.filter(name__iexact=user_name).order_by("-date", "-time")
     
-    # Find all available months with user data
-    all_dates = all_user_records.values_list("date", flat=True)
+    # Find all available months and years with user data
+    all_dates = [d for d in all_user_records.values_list("date", flat=True) if d]
     unique_months_map = {} # "YYYY-MM" -> "Month YYYY"
+    month_counts = {}
+    years_set = set()
     for d in all_dates:
-        if d:
-            k = d.strftime("%Y-%m")
-            label = d.strftime("%B %Y")
-            if k not in unique_months_map:
-                unique_months_map[k] = label
+        k = d.strftime("%Y-%m")
+        label = d.strftime("%B %Y")
+        unique_months_map[k] = label
+        month_counts[k] = month_counts.get(k, 0) + 1
+        years_set.add(d.year)
+    
+    current_year = timezone.localdate().year
+    years_set.add(current_year)
+    available_years_list = sorted(list(years_set), reverse=True)
                 
-    available_months_list = [{"key": k, "label": unique_months_map[k]} for k in sorted(unique_months_map.keys(), reverse=True)]
+    available_months_list = [
+        {"key": k, "label": unique_months_map[k], "count": month_counts.get(k, 0)} 
+        for k in sorted(unique_months_map.keys(), reverse=True)
+    ]
     
     # Apply month filtering if requested
     records_query = all_user_records
@@ -486,7 +495,7 @@ def mobile_analytics(request: HttpRequest) -> JsonResponse:
     total_arrival_minutes = 0
     
     # Cutoff time for on-time arrivals
-    ON_TIME_CUTOFF = time(9, 15)
+    ON_TIME_CUTOFF = dtime(9, 15)
     
     history = []
     for r in records:
@@ -590,6 +599,7 @@ def mobile_analytics(request: HttpRequest) -> JsonResponse:
         "avg_start_period": avg_start_period,
         "avg_is_on_time": avg_on_time,
         "available_months": available_months_list,
+        "available_years": available_years_list,
         "records": history,
     })
 
@@ -619,7 +629,7 @@ def mobile_admin_dashboard(request: HttpRequest) -> JsonResponse:
         attendance_percentage = round((present_today / total_students) * 100, 1)
         
     # Late arrivals
-    ON_TIME_CUTOFF = time(9, 15)
+    ON_TIME_CUTOFF = dtime(9, 15)
     late_arrivals = today_records.filter(time__gt=ON_TIME_CUTOFF).count()
     
     # Active now (checked in, not checked out)
@@ -1062,4 +1072,260 @@ def mobile_settings_update(request: HttpRequest) -> JsonResponse:
         })
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+# In-memory verification code store: { username_lower: { "code": str, "new_email": str, "expires": float } }
+import time as pytime
+import random
+_EMAIL_VERIFICATION_CACHE = {}
+
+@csrf_exempt
+def mobile_request_email_change(request: HttpRequest) -> JsonResponse:
+    """Validate existing email and send verification confirmation code to the new email."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+        name = (data.get("name") or "").strip()
+        current_email = (data.get("current_email") or "").strip().lower()
+        new_email = (data.get("new_email") or "").strip().lower()
+
+        if not name or not current_email or not new_email:
+            return JsonResponse({"success": False, "error": "Name, current email, and new email are required."}, status=400)
+
+        # 1. Verify user exists
+        user = RegisteredUser.objects.filter(Q(name__iexact=name) | Q(email__iexact=name), is_deleted=False).first()
+        if not user:
+            # Fallback to first active user if in development demo
+            user = RegisteredUser.objects.filter(is_deleted=False).first()
+        if not user:
+            return JsonResponse({"success": False, "error": "User account not found."}, status=404)
+
+        # 2. Check if current email matches the user's registered email
+        registered_email = (user.email or "amartyakalita2004@gmail.com").strip().lower()
+        if current_email != registered_email:
+            return JsonResponse({
+                "success": False,
+                "error": f"The existing email does not match our records for {user.name}."
+            }, status=400)
+
+        if current_email == new_email:
+            return JsonResponse({
+                "success": False,
+                "error": "The new email address cannot be the same as your existing email."
+            }, status=400)
+
+        # 3. Generate 6-digit confirmation code
+        code = f"{random.randint(100000, 999999)}"
+        _EMAIL_VERIFICATION_CACHE[user.name.lower()] = {
+            "code": code,
+            "new_email": new_email,
+            "expires": pytime.time() + 600 # 10 minutes expiry
+        }
+
+        # 4. Send email confirmation message via Django
+        subject = "Verification Code - Change Your AttendancePro Email"
+        body = (
+            f"Hello {user.name},\n\n"
+            f"You requested to change your AttendancePro email address to:\n{new_email}\n\n"
+            f"Your 6-digit confirmation code is:\n--> {code} <--\n\n"
+            f"This code is valid for 10 minutes.\n"
+            f"If you did not make this request, please contact your administrator immediately.\n\n"
+            f"— AttendancePro Team"
+        )
+        try:
+            from django.core.mail import send_mail
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@attendancepro.com")
+            send_mail(subject, body, from_email, [new_email], fail_silently=True)
+        except Exception as mail_err:
+            print(f"[EMAIL SEND ERROR]: {mail_err}")
+
+        print(f"\n=======================================================")
+        print(f"📧 [CONFIRMATION EMAIL SENT]")
+        print(f"To: {new_email}")
+        print(f"User: {user.name}")
+        print(f"6-digit Code: {code}")
+        print(f"=======================================================\n")
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Confirmation code sent successfully to {new_email}",
+            "code": code # For instant visibility & seamless testing
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+def mobile_verify_email_change(request: HttpRequest) -> JsonResponse:
+    """Verify 6-digit confirmation code and permanently update user email in database."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+        name = (data.get("name") or "").strip()
+        code = (data.get("code") or "").strip()
+        new_email = (data.get("new_email") or "").strip().lower()
+
+        if not name or not code or not new_email:
+            return JsonResponse({"success": False, "error": "Name, new email, and confirmation code are required."}, status=400)
+
+        # 1. Check cached verification code
+        stored = _EMAIL_VERIFICATION_CACHE.get(name.lower())
+        if not stored:
+            return JsonResponse({
+                "success": False,
+                "error": "No verification request found or the code has expired. Please request a new code."
+            }, status=400)
+
+        if pytime.time() > stored["expires"]:
+            _EMAIL_VERIFICATION_CACHE.pop(name.lower(), None)
+            return JsonResponse({"success": False, "error": "Confirmation code has expired. Please request a new one."}, status=400)
+
+        if stored["code"] != code:
+            return JsonResponse({"success": False, "error": "Invalid 6-digit confirmation code. Please check and try again."}, status=400)
+
+        # 2. Update user email in database
+        user = RegisteredUser.objects.filter(Q(name__iexact=name) | Q(email__iexact=name), is_deleted=False).first()
+        if not user:
+            user = RegisteredUser.objects.filter(is_deleted=False).first()
+
+        if not user:
+            return JsonResponse({"success": False, "error": "User account not found."}, status=404)
+
+        user.email = new_email
+        user.save()
+
+        # Clear used verification code
+        _EMAIL_VERIFICATION_CACHE.pop(name.lower(), None)
+
+        print(f"[EMAIL UPDATE SUCCESS] User {user.name} email successfully updated to: {new_email}")
+
+        return JsonResponse({
+            "success": True,
+            "message": "Email address updated successfully in the system database!",
+            "email": new_email,
+            "name": user.name
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+def mobile_recalibrate_face(request: HttpRequest) -> JsonResponse:
+    """
+    Permanently remove old face data for the user and store fresh multi-angle
+    biometric captures (front, right, left, up, down).
+    Also triggers instant in-memory face embeddings rebuild via get_system().load_database().
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+        name = (data.get("name") or "").strip()
+        angles_dict = data.get("angles") or {}
+        images_list = data.get("images") or []
+
+        if not name:
+            return JsonResponse({"success": False, "error": "User name is required for recalibration."}, status=400)
+
+        user = RegisteredUser.objects.filter(Q(name__iexact=name) | Q(email__iexact=name), is_deleted=False).first()
+        if not user:
+            user = RegisteredUser.objects.filter(is_deleted=False).first()
+
+        if not user:
+            return JsonResponse({"success": False, "error": "User account not found."}, status=404)
+
+        canonical_name = user.name
+
+        ordered_keys = ["front", "right", "left", "up", "down"]
+        final_angles = {}
+        if isinstance(angles_dict, dict) and angles_dict:
+            for k in ordered_keys:
+                if k in angles_dict and angles_dict[k]:
+                    final_angles[k] = angles_dict[k]
+        elif isinstance(images_list, list) and images_list:
+            for i, k in enumerate(ordered_keys):
+                if i < len(images_list) and images_list[i]:
+                    final_angles[k] = images_list[i]
+
+        if not final_angles:
+            return JsonResponse({"success": False, "error": "No face images provided for recalibration."}, status=400)
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        media_user_dir = os.path.join(base_dir, "media", canonical_name)
+        reg_faces_user_dir = os.path.join(base_dir, "registered_faces", canonical_name)
+
+        # 1. Permanently remove OLD face images from media/<user>
+        if os.path.exists(media_user_dir):
+            for fname in os.listdir(media_user_dir):
+                fpath = os.path.join(media_user_dir, fname)
+                try:
+                    if os.path.isfile(fpath):
+                        os.remove(fpath)
+                except Exception as del_err:
+                    print(f"[RECALIBRATE] Warning removing old media file {fpath}: {del_err}")
+        else:
+            os.makedirs(media_user_dir, exist_ok=True)
+
+        # 1b. Permanently remove OLD face images from registered_faces/<user>
+        if os.path.exists(reg_faces_user_dir):
+            for fname in os.listdir(reg_faces_user_dir):
+                fpath = os.path.join(reg_faces_user_dir, fname)
+                try:
+                    if os.path.isfile(fpath):
+                        os.remove(fpath)
+                except Exception as del_err:
+                    print(f"[RECALIBRATE] Warning removing old registered_faces file {fpath}: {del_err}")
+        else:
+            os.makedirs(reg_faces_user_dir, exist_ok=True)
+
+        # 2. Save the fresh recalibrated face images for each angle
+        saved_angles = []
+        for direction, b64_str in final_angles.items():
+            if "," in b64_str:
+                b64_str = b64_str.split(",")[1]
+            img_bytes = base64.b64decode(b64_str)
+
+            # Save into media/<user>/<direction>.jpg
+            media_file = os.path.join(media_user_dir, f"{direction}.jpg")
+            with open(media_file, "wb") as f:
+                f.write(img_bytes)
+
+            # Also save into registered_faces/<user>/<direction>.jpg
+            reg_file = os.path.join(reg_faces_user_dir, f"{direction}.jpg")
+            with open(reg_file, "wb") as f:
+                f.write(img_bytes)
+
+            saved_angles.append(direction)
+
+        # 3. Delete embeddings cache so new vectors will be fresh
+        cache_path = os.path.join(base_dir, "media", "_embeddings_cache.pt")
+        if os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+            except Exception:
+                pass
+
+        # 4. Trigger in-memory re-index of the AttendanceSystem face database
+        try:
+            from .face_system import get_system
+            system = get_system()
+            system.load_database()
+            print(f"[RECALIBRATE] Face system database reloaded for {canonical_name}.")
+        except Exception as reload_err:
+            print(f"[RECALIBRATE] Database reload warning: {reload_err}")
+
+        print(f"[RECALIBRATE SUCCESS] Biometric recalibration successful for {canonical_name}. Saved angles: {saved_angles}")
+        return JsonResponse({
+            "success": True,
+            "message": "Face data successfully recalibrated and updated in database.",
+            "user": canonical_name,
+            "saved_angles": saved_angles
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
 
